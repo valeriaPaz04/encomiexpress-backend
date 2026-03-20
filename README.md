@@ -82,9 +82,11 @@ npm start
 
 ### Roles y Permisos
 - `GET /api/roles` - Listar roles
+- `GET /api/roles/:id` - Obtener rol por ID
 - `POST /api/roles` - Crear rol
-- `POST /api/roles/:id/permissions` - Asignar permisos
-- `GET /api/permisos` - Listar permisos
+- `PUT /api/roles/:id` - Actualizar rol
+- `DELETE /api/roles/:id` - Eliminar (inhabilitar) rol
+- `GET /api/roles/permisos` - Listar todos los permisos
 
 ### Clientes
 - `GET /api/clientes` - Listar clientes
@@ -141,16 +143,18 @@ npm start
 
 ## 📝 Ejemplo de Uso
 
+> **Nota:** El puerto por defecto es `3000`, pero se configura mediante la variable de entorno `PORT`
+
 ### Iniciar sesión
 ```bash
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST http://localhost:${PORT:-3000}/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@encomiexpress.com", "password": "admin123"}'
 ```
 
 ### Crear encomienda
 ```bash
-curl -X POST http://localhost:3000/api/encomiendas \
+curl -X POST http://localhost:${PORT:-3000}/api/encomiendas \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer TU_TOKEN" \
   -d '{
@@ -173,7 +177,7 @@ curl -X POST http://localhost:3000/api/encomiendas \
 
 ### Rastrear encomienda
 ```bash
-curl http://localhost:3000/api/encomiendas/track/ENCOMIEXPRESS-123
+curl http://localhost:${PORT:-3000}/api/encomiendas/track/ENCOMIEXPRESS-123
 ```
 
 ## 📄 Licencia

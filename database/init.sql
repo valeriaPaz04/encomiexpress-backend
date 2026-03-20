@@ -190,6 +190,7 @@ COMMENT ON COLUMN "encomiendaVenta"."estado" IS 'pendiente de recogida | en reco
 ALTER TABLE "rolPermiso" ADD FOREIGN KEY ("idRol") REFERENCES "rol" ("idRol") DEFERRABLE INITIALLY IMMEDIATE;
 ALTER TABLE "rolPermiso" ADD FOREIGN KEY ("idPermiso") REFERENCES "permiso" ("idPermiso") DEFERRABLE INITIALLY IMMEDIATE;
 ALTER TABLE "usuario" ADD FOREIGN KEY ("idRol") REFERENCES "rol" ("idRol") DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE "conductor" ADD FOREIGN KEY ("idUsuario") REFERENCES "usuario" ("idUsuario") DEFERRABLE INITIALLY IMMEDIATE;
 ALTER TABLE "vehiculo" ADD FOREIGN KEY ("idConductor") REFERENCES "conductor" ("idConductor") DEFERRABLE INITIALLY IMMEDIATE;
 ALTER TABLE "vehiculo" ADD FOREIGN KEY ("idPropietario") REFERENCES "propietarioVehiculo" ("idPropietario") DEFERRABLE INITIALLY IMMEDIATE;
 ALTER TABLE "ruta" ADD FOREIGN KEY ("idVehiculo") REFERENCES "vehiculo" ("idVehiculo") DEFERRABLE INITIALLY IMMEDIATE;

@@ -15,6 +15,7 @@ const rutaRoutes = require('./routes/rutas');
 const anticipoRoutes = require('./routes/anticipos');
 const clienteRoutes = require('./routes/clientes'); // Rutas de clientes
 const encomiendaRoutes = require('./routes/encomiendas');
+const rolRoutes = require('./routes/roles');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +37,7 @@ app.use('/api/rutas', rutaRoutes);
 app.use('/api/anticipos', anticipoRoutes);
 app.use('/api/clientes', clienteRoutes); // Rutas de clientes
 app.use('/api/encomiendas', encomiendaRoutes);
+app.use('/api/roles', rolRoutes);
 
 // Ruta de verificación de estado
 app.get('/api/health', (req, res) => {
