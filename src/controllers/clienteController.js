@@ -1,13 +1,11 @@
-const { Cliente, EncomiendaVenta } = require('../models');
+const { Cliente } = require('../models');
 
 // ============================================
-// Listar todos los clientes
+// Listar todos los clientes (habilitados e inhabilitados)
 // ============================================
 const listarClientes = async (req, res) => {
   try {
     const clientes = await Cliente.findAll({
-      where: { habilitado: true },
-      attributes: { exclude: [] },
       order: [['nombre', 'ASC']]
     });
 
@@ -61,7 +59,6 @@ const registrarCliente = async (req, res) => {
   try {
     const { tipoIdentificacion, numeroIdentificacion, nombre, apellido, telefono, email, direccion } = req.body;
 
-    // Verificar si el número de identificación ya existe
     const existingCliente = await Cliente.findOne({ where: { numeroIdentificacion } });
     if (existingCliente) {
       return res.status(400).json({
@@ -70,7 +67,6 @@ const registrarCliente = async (req, res) => {
       });
     }
 
-    // Verificar si el email ya existe
     if (email) {
       const existingEmail = await Cliente.findOne({ where: { email } });
       if (existingEmail) {
@@ -123,9 +119,8 @@ const actualizarCliente = async (req, res) => {
       });
     }
 
-    // Verificar si el nuevo número de identificación ya existe en otro cliente
     if (numeroIdentificacion && numeroIdentificacion !== cliente.numeroIdentificacion) {
-      const existingCliente = await Cliente.findOne({ 
+      const existingCliente = await Cliente.findOne({
         where: { numeroIdentificacion, id: { [require('sequelize').Op.ne]: id } }
       });
       if (existingCliente) {
@@ -136,9 +131,8 @@ const actualizarCliente = async (req, res) => {
       }
     }
 
-    // Verificar si el nuevo email ya existe en otro cliente
     if (email && email !== cliente.email) {
-      const existingEmail = await Cliente.findOne({ 
+      const existingEmail = await Cliente.findOne({
         where: { email, id: { [require('sequelize').Op.ne]: id } }
       });
       if (existingEmail) {
@@ -175,9 +169,9 @@ const actualizarCliente = async (req, res) => {
 };
 
 // ============================================
-// Eliminar (inhabilitar) un cliente
+// Toggle habilitado/inhabilitado
 // ============================================
-const eliminarCliente = async (req, res) => {
+const toggleHabilitadoCliente = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -189,43 +183,27 @@ const eliminarCliente = async (req, res) => {
       });
     }
 
-    // Verificar si tiene encomiendas asociadas
-    const encomiendasCount = await EncomiendaVenta.count({ where: { idCliente: id } });
-    if (encomiendasCount > 0) {
-      // En lugar de eliminar, lo inhabilitamos
-      await cliente.update({ habilitado: false });
-      return res.json({
-        success: true,
-        message: 'Cliente inhabilitado (tiene encomiendas asociadas)',
-        data: cliente
-      });
-    }
-
-    // Si no tiene encomiendas, eliminar lógicamente
-    await cliente.update({ habilitado: false });
+    await cliente.update({ habilitado: !cliente.habilitado });
 
     res.json({
       success: true,
-      message: 'Cliente eliminado exitosamente',
+      message: `Cliente ${cliente.habilitado ? 'habilitado' : 'inhabilitado'} exitosamente`,
       data: cliente
     });
   } catch (error) {
-    console.error('Error al eliminar cliente:', error);
+    console.error('Error al cambiar estado del cliente:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al eliminar cliente',
+      message: 'Error al cambiar estado del cliente',
       error: error.message
     });
   }
 };
 
-// ============================================
-// Exportar controladores
-// ============================================
 module.exports = {
   listarClientes,
   obtenerCliente,
   registrarCliente,
   actualizarCliente,
-  eliminarCliente
+  toggleHabilitadoCliente,
 };
