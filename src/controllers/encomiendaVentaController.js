@@ -9,9 +9,9 @@ const generarNumeroGuia = async () => {
 };
 
 // Validar estados de encomienda
-const ESTADOS_VALIDOS = ['pendiente de recogida', 'en recogida', 'programada', 'en tránsito', 'entregado', 'devuelto'];
-const METODOS_PAGO_VALIDOS = ['contraentrega', 'efectivo', 'transferencia', 'nequi'];
-const ESTADOS_PAGO_VALIDOS = ['pendiente', 'pagado'];
+const ESTADOS_VALIDOS = ['Pendiente de Recogida', 'En Recogida', 'Programada', 'En Tránsito', 'Entregado', 'Devuelto'];
+const METODOS_PAGO_VALIDOS = ['Contraentrega', 'Efectivo', 'Transferencia', 'Nequi'];
+const ESTADOS_PAGO_VALIDOS = ['Pendiente', 'Pagado'];
 
 // Listar todas las encomiendas
 exports.getAll = async (req, res) => {
@@ -163,18 +163,20 @@ exports.create = async (req, res) => {
       });
     }
 
-    // Validar ruta existe
-    const ruta = await Ruta.findByPk(idRuta);
-    if (!ruta) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Ruta no encontrada'
-      });
+    // Validar ruta existe (opcional por ahora — módulo de rutas pendiente)
+    if (idRuta) {
+      const ruta = await Ruta.findByPk(idRuta);
+      if (!ruta) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Ruta no encontrada'
+        });
+      }
     }
 
     // Validar método de pago
-    if (metodoPago && !METODOS_PAGO_VALIDOS.includes(metodoPago.toLowerCase())) {
+    if (metodoPago && !METODOS_PAGO_VALIDOS.some(v => v.toLowerCase() === metodoPago.toLowerCase())) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -183,7 +185,7 @@ exports.create = async (req, res) => {
     }
 
     // Validar estado de pago
-    if (estadoPago && !ESTADOS_PAGO_VALIDOS.includes(estadoPago.toLowerCase())) {
+    if (estadoPago && !ESTADOS_PAGO_VALIDOS.some(v => v.toLowerCase() === estadoPago.toLowerCase())) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -297,7 +299,7 @@ exports.update = async (req, res) => {
     }
 
     // Validar método de pago
-    if (metodoPago && !METODOS_PAGO_VALIDOS.includes(metodoPago.toLowerCase())) {
+    if (metodoPago && !METODOS_PAGO_VALIDOS.some(v => v.toLowerCase() === metodoPago.toLowerCase())) {
       return res.status(400).json({
         success: false,
         message: `Método de pago inválido. Opciones: ${METODOS_PAGO_VALIDOS.join(', ')}`
@@ -305,7 +307,7 @@ exports.update = async (req, res) => {
     }
 
     // Validar estado de pago
-    if (estadoPago && !ESTADOS_PAGO_VALIDOS.includes(estadoPago.toLowerCase())) {
+    if (estadoPago && !ESTADOS_PAGO_VALIDOS.some(v => v.toLowerCase() === estadoPago.toLowerCase())) {
       return res.status(400).json({
         success: false,
         message: `Estado de pago inválido. Opciones: ${ESTADOS_PAGO_VALIDOS.join(', ')}`
@@ -370,7 +372,7 @@ exports.cambiarEstado = async (req, res) => {
     }
 
     // Validar estado
-    if (!ESTADOS_VALIDOS.includes(estado.toLowerCase())) {
+    if (!ESTADOS_VALIDOS.some(v => v.toLowerCase() === estado.toLowerCase())) {
       return res.status(400).json({
         success: false,
         message: `Estado inválido. Opciones: ${ESTADOS_VALIDOS.join(', ')}`
@@ -463,6 +465,36 @@ exports.agregarPaquete = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al agregar paquete',
+      error: error.message
+    });
+  }
+};
+
+// Habilitar/Inhabilitar una encomienda (toggle)
+exports.toggleHabilitado = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const encomienda = await EncomiendaVenta.findByPk(id);
+
+    if (!encomienda) {
+      return res.status(404).json({
+        success: false,
+        message: 'Encomienda no encontrada'
+      });
+    }
+
+    await encomienda.update({ habilitado: !encomienda.habilitado });
+
+    res.json({
+      success: true,
+      message: `Encomienda ${encomienda.habilitado ? 'habilitada' : 'inhabilitada'} exitosamente`,
+      data: encomienda
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al cambiar estado de habilitado',
       error: error.message
     });
   }

@@ -27,7 +27,6 @@ router.use(authenticate);
 // POST /api/encomiendas - Crear una nueva encomienda
 router.post('/',
   body('idCliente').notEmpty().withMessage('Cliente es requerido'),
-  body('idRuta').notEmpty().withMessage('Ruta es requerida'),
   validate,
   encomiendaVentaController.create
 );
@@ -42,7 +41,10 @@ router.patch('/:id/estado',
   encomiendaVentaController.cambiarEstado
 );
 
-// DELETE /api/encomiendas/:id - Inhabilitar una encomienda
+// PATCH /api/encomiendas/:id/toggle-habilitado - Habilitar/Inhabilitar
+router.patch('/:id/toggle-habilitado', encomiendaVentaController.toggleHabilitado);
+
+// DELETE /api/encomiendas/:id - Inhabilitar una encomienda (legacy)
 router.delete('/:id', authorize('admin'), encomiendaVentaController.delete);
 
 // POST /api/encomiendas/:idEncomiendaVenta/paquetes - Agregar paquete
