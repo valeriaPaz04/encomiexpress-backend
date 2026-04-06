@@ -275,6 +275,8 @@ exports.create = async (req, res) => {
 
 // Actualizar una encomienda
 exports.update = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
   try {
     const { id } = req.params;
     const {
@@ -286,12 +288,17 @@ exports.update = async (req, res) => {
       impuestos,
       metodoPago,
       estadoPago,
-      habilitado
+      habilitado,
+      // Datos del destinatario
+      destinatario,
+      // Array de paquetes
+      paquetes
     } = req.body;
 
     const encomienda = await EncomiendaVenta.findByPk(id);
 
     if (!encomienda) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         message: 'Encomienda no encontrada'
@@ -319,8 +326,18 @@ exports.update = async (req, res) => {
     const nuevoValorServicio = valorServicio !== undefined ? valorServicio : encomienda.valorServicio;
     const nuevoTotal = nuevoImpuestos + nuevoValorServicio;
 
+    // Para idRuta: si viene un número válido, usarlo; si no, mantener el valor actual
+    let nuevoIdRuta = encomienda.idRuta;
+    if (idRuta !== undefined) {
+        if (idRuta && !isNaN(parseInt(idRuta)) && parseInt(idRuta) > 0) {
+            nuevoIdRuta = parseInt(idRuta);
+        } else {
+            nuevoIdRuta = null;
+        }
+    }
+
     await encomienda.update({
-      idRuta: idRuta !== undefined ? idRuta : encomienda.idRuta,
+      idRuta: nuevoIdRuta,
       numeroFactura: numeroFactura !== undefined ? numeroFactura : encomienda.numeroFactura,
       fechaEstimadaEntrega: fechaEstimadaEntrega !== undefined ? fechaEstimadaEntrega : encomienda.fechaEstimadaEntrega,
       observaciones: observaciones !== undefined ? observaciones : encomienda.observaciones,
@@ -330,13 +347,55 @@ exports.update = async (req, res) => {
       metodoPago: metodoPago !== undefined ? metodoPago : encomienda.metodoPago,
       estadoPago: estadoPago !== undefined ? estadoPago : encomienda.estadoPago,
       habilitado: habilitado !== undefined ? habilitado : encomienda.habilitado
-    });
+    }, { transaction });
+
+    // Actualizar destinatario si existe
+    if (destinatario) {
+      const destinatarioExistente = await Destinatario.findOne({ 
+        where: { idEncomiendaVenta: id } 
+      });
+      
+      if (destinatarioExistente) {
+        await destinatarioExistente.update({
+          nombreDestinatario: destinatario.nombreDestinatario || destinatarioExistente.nombreDestinatario,
+          telefonoDestinatario: destinatario.telefonoDestinatario || null,
+          direccionDestinatario: destinatario.direccionDestinatario || null
+        }, { transaction });
+      } else {
+        await Destinatario.create({
+          idEncomiendaVenta: id,
+          nombreDestinatario: destinatario.nombreDestinatario,
+          telefonoDestinatario: destinatario.telefonoDestinatario || null,
+          direccionDestinatario: destinatario.direccionDestinatario || null
+        }, { transaction });
+      }
+    }
+
+    // Actualizar paquetes si existen
+    if (paquetes && paquetes.length > 0) {
+      // Eliminar paquetes existentes y crear nuevos
+      await Paquete.destroy({ where: { idEncomiendaVenta: id }, transaction });
+      
+      for (const pkg of paquetes) {
+        await Paquete.create({
+          idEncomiendaVenta: id,
+          descripcionContenido: pkg.descripcionContenido || null,
+          peso: pkg.peso || null,
+          alto: pkg.alto || null,
+          ancho: pkg.ancho || null,
+          profundidad: pkg.profundidad || null,
+          valorDeclarado: pkg.valorDeclarado || null
+        }, { transaction });
+      }
+    }
+
+    await transaction.commit();
 
     // Obtener la encomienda actualizada
     const encomiendaActualizada = await EncomiendaVenta.findByPk(id, {
       include: [
         { model: Cliente, as: 'cliente' },
-        { model: Ruta, as: 'ruta' },
+        { model: Ruta, as: 'ruta', required: false },
         { model: Destinatario, as: 'destinatarios' },
         { model: Paquete, as: 'paquetes' }
       ]
@@ -348,6 +407,7 @@ exports.update = async (req, res) => {
       data: encomiendaActualizada
     });
   } catch (error) {
+    await transaction.rollback();
     res.status(500).json({
       success: false,
       message: 'Error al actualizar encomienda',
@@ -484,12 +544,24 @@ exports.toggleHabilitado = async (req, res) => {
       });
     }
 
-    await encomienda.update({ habilitado: !encomienda.habilitado });
+    // Actualizar y obtener el valor nuevo
+    const nuevoEstado = !encomienda.habilitado
+    await encomienda.update({ habilitado: nuevoEstado });
+    
+    // Recargar con las relaciones incluye cliente, destinatarios y paquetes
+    const encomiendaActualizada = await EncomiendaVenta.findByPk(id, {
+      include: [
+        { model: Cliente, as: 'cliente' },
+        { model: Destinatario, as: 'destinatarios' },
+        { model: Paquete, as: 'paquetes' },
+        { model: Ruta, as: 'ruta', required: false }
+      ]
+    });
 
     res.json({
       success: true,
-      message: `Encomienda ${encomienda.habilitado ? 'habilitada' : 'inhabilitada'} exitosamente`,
-      data: encomienda
+      message: `Encomienda ${nuevoEstado ? 'habilitada' : 'inhabilitada'} exitosamente`,
+      data: encomiendaActualizada
     });
   } catch (error) {
     res.status(500).json({

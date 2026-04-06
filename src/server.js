@@ -136,7 +136,7 @@ const startServer = async () => {
     
     // Sincronizar modelos (solo en desarrollo)
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: false });
+      await sequelize.sync({ alter: true }); // Temporal: agrega columnas faltantes, luego volver a false
       console.log('✅ Modelos sincronizados con la base de datos');
     }
     
