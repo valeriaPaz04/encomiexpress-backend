@@ -31,6 +31,7 @@ router.get('/', authorize('admin'), usuarioController.getAll);
 router.get('/:id', usuarioController.getById);
 router.post('/', authorize('admin'), createValidation, validate, usuarioController.create);
 router.put('/:id', authorize('admin'), updateValidation, validate, usuarioController.update);
+router.patch('/:id/toggle-habilitado', authorize('admin'), usuarioController.toggleHabilitado);
 router.delete('/:id', authorize('admin'), usuarioController.delete);
 router.post('/:id/change-password', authorize('admin'), 
   body('currentPassword').notEmpty(),

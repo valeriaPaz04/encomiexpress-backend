@@ -250,3 +250,31 @@ exports.changePassword = async (req, res) => {
     });
   }
 };
+
+exports.toggleHabilitado = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const usuario = await Usuario.findByPk(id);
+
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
+    }
+
+    await usuario.update({ habilitado: !usuario.habilitado });
+
+    res.json({
+      success: true,
+      message: usuario.habilitado ? 'Usuario habilitado exitosamente' : 'Usuario inhabilitado exitosamente',
+      data: usuario
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al cambiar estado del usuario',
+      error: error.message
+    });
+  }
+};
