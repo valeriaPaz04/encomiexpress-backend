@@ -86,18 +86,21 @@ exports.create = async (req, res) => {
       });
     }
 
-    // Verificar que la ruta existe
-    const ruta = await Ruta.findByPk(idRuta);
-    if (!ruta) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ruta no encontrada'
-      });
+    // idRuta es opcional (nullable)
+    let ruta = null;
+    if (idRuta) {
+      ruta = await Ruta.findByPk(idRuta);
+      if (!ruta) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ruta no encontrada'
+        });
+      }
     }
 
     const anticipo = await AnticipoExcedente.create({
       idConductor,
-      idRuta,
+      idRuta: ruta?.idRuta || null,
       valorAnticipo: valorAnticipo || 0,
       valorGastado: 0,
       excedente: 0,
