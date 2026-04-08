@@ -180,6 +180,58 @@ curl -X POST http://localhost:${PORT:-3000}/api/encomiendas \
 curl http://localhost:${PORT:-3000}/api/encomiendas/track/ENCOMIEXPRESS-123
 ```
 
+## 🗄️ Cambios en la Base de Datos
+
+**1. Permitir idRuta nulo en anticipoExcedente (para anticipos sin ruta asignada):**
+```sql
+ALTER TABLE "anticipoExcedente" ALTER COLUMN "idRuta" DROP NOT NULL;
+```
+
+**2. Permitir idRuta nulo en encomiendaVenta (para encomiendas sin ruta):**
+```sql
+ALTER TABLE "encomiendaVenta" ALTER COLUMN "idRuta" DROP NOT NULL;
+```
+
+**3. Agregar columna fechaMaxima en anticipoExcedente:**
+```sql
+ALTER TABLE "anticipoExcedente" ADD COLUMN "fechaMaxima" DATE;
+```
+
+## 👤 Crear Usuario Conductor
+
+```sql
+-- 1. Insertar usuario
+INSERT INTO usuario ("idRol", "tipoIdentificacion", "numeroIdentificacion", nombre, apellido, telefono, email, password, habilitado)
+VALUES (
+    (SELECT "idRol" FROM rol WHERE nombre = 'conductor'),
+    'CC', 
+    '87654321', 
+    'Conductor', 
+    'Demo', 
+    '3001234567', 
+    'conductor@encomiexpress.com',
+    '$2a$10$XveXAx1WR0eRp27VE0OXE.r3l8Sa3Kud1gMuOTrm8QvDIxN8KSxaa', 
+    true
+);
+
+-- 2. Insertar conductor
+INSERT INTO conductor ("idUsuario", "categoriaLicencia", "numeroLicencia", "vencimientoLicencia", "estado", "habilitado")
+VALUES (
+    (SELECT "idUsuario" FROM usuario WHERE email = 'conductor@encomiexpress.com'),
+    'B1',
+    '87654321',
+    '2027-12-31',
+    'activo',
+    true
+);
+```
+
+**Contraseña encriptada:** La contraseña `conductor123` ya está hasheada en el insert above.
+Para generar nueva contraseña:
+```bash
+node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('tuPassword', 10).then(h => console.log(h))"
+```
+
 ## 📄 Licencia
 
 ISC
