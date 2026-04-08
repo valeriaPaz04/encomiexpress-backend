@@ -26,6 +26,9 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Servir archivos subidos
+app.use('/uploads', express.static('uploads'));
+
 // Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);

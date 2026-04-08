@@ -5,6 +5,12 @@ const { validate } = require('../middlewares/validation');
 const anticipoController = require('../controllers/anticipoExcedenteController');
 const { authenticate, authorize } = require('../middlewares/auth');
 
+// Disable cache
+router.get('/', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  next();
+});
+
 // ============================================
 // RUTAS PÚBLICAS (solo lectura para admin/conductor)
 // ============================================

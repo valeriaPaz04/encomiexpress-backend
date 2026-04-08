@@ -3,6 +3,7 @@ const { AnticipoExcedente, Conductor, Ruta, Vehiculo, Destino } = require('../mo
 exports.getAll = async (req, res) => {
   try {
     const { idConductor, estado } = req.query;
+    console.log('GET /api/anticipos - idConductor:', idConductor, 'estado:', estado);
     
     const where = {};
     if (idConductor) where.idConductor = idConductor;
@@ -75,7 +76,7 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { idConductor, idRuta, valorAnticipo, soporte, fechaEntrega } = req.body;
+    const { idConductor, idRuta, valorAnticipo, tipo, soporte, fechaEntrega, fechaMaxima } = req.body;
 
     // Verificar que el conductor existe
     const conductor = await Conductor.findByPk(idConductor);
@@ -104,9 +105,11 @@ exports.create = async (req, res) => {
       valorAnticipo: valorAnticipo || 0,
       valorGastado: 0,
       excedente: 0,
+      tipo: tipo || 'Anticipo',
       estado: 'pendiente',
       soporte,
-      fechaEntrega
+      fechaEntrega,
+      fechaMaxima
     });
 
     res.status(201).json({

@@ -44,6 +44,10 @@ const AnticipoExcedente = sequelize.define('AnticipoExcedente', {
     type: DataTypes.DATEONLY,
     allowNull: true
   },
+  fechaMaxima: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
   fechaEntregaExcedente: {
     type: DataTypes.DATEONLY,
     allowNull: true
