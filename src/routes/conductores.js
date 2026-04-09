@@ -13,9 +13,65 @@ router.get('/:id/vehiculos', conductorController.getVehiculos);
 router.get('/:id/anticipos', conductorController.getAnticipos);
 
 // ============================================
-// RUTAS PROTEGIDAS - ADMIN
+// RUTAS PROTEGIDAS - TODOS LOS USUARIOS AUTENTICADOS
 // ============================================
 router.use(authenticate);
+
+// Actualizar perfil del conductor logueado
+router.put('/perfil', async (req, res) => {
+  try {
+    if (req.usuario.rol?.nombre !== 'conductor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Solo los conductores pueden actualizar su perfil'
+      });
+    }
+    
+    const { Conductor } = require('../models');
+    const conductor = await Conductor.findOne({ 
+      where: { idUsuario: req.usuario.idUsuario }
+    });
+    
+    if (!conductor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Conductor no encontrado'
+      });
+    }
+    
+    const { 
+      categoriaLicencia,
+      numeroLicencia,
+      vencimientoLicencia,
+      estado,
+      habilitado 
+    } = req.body;
+
+    await conductor.update({
+      categoriaLicencia: categoriaLicencia !== undefined ? categoriaLicencia : conductor.categoriaLicencia,
+      numeroLicencia: numeroLicencia !== undefined ? numeroLicencia : conductor.numeroLicencia,
+      vencimientoLicencia: vencimientoLicencia !== undefined ? vencimientoLicencia : conductor.vencimientoLicencia,
+      estado: estado || conductor.estado,
+      habilitado: habilitado !== undefined ? habilitado : conductor.habilitado
+    });
+
+    res.json({
+      success: true,
+      message: 'Perfil actualizado exitosamente',
+      data: conductor
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar perfil',
+      error: error.message
+    });
+  }
+});
+
+// ============================================
+// RUTAS PROTEGIDAS - ADMIN
+// ============================================
 
 // Crear conductor - solo admin
 router.post('/', authorize('admin'), conductorController.create);

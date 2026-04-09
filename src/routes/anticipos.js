@@ -17,7 +17,6 @@ router.get('/:id', authenticate, anticipoController.getById);
 
 // Crear anticipo - admin o conductor
 router.post('/', authenticate, authorize('admin', 'conductor'), 
-  body('idRuta').notEmpty().withMessage('Ruta es requerida'),
   body('valorAnticipo').notEmpty().withMessage('Valor del anticipo es requerido'),
   validate, 
   anticipoController.create

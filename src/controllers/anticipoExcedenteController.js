@@ -86,18 +86,22 @@ exports.create = async (req, res) => {
       });
     }
 
-    // Verificar que la ruta existe
-    const ruta = await Ruta.findByPk(idRuta);
-    if (!ruta) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ruta no encontrada'
-      });
+    // Verificar que la ruta existe solo si se proporciona
+    let idRutaFinal = idRuta;
+    if (idRuta) {
+      const ruta = await Ruta.findByPk(idRuta);
+      if (!ruta) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ruta no encontrada'
+        });
+      }
+      idRutaFinal = ruta.idRuta;
     }
 
     const anticipo = await AnticipoExcedente.create({
       idConductor,
-      idRuta,
+      idRuta: idRutaFinal,
       valorAnticipo: valorAnticipo || 0,
       valorGastado: 0,
       excedente: 0,
@@ -314,18 +318,22 @@ exports.createMisAnticipo = async (req, res) => {
     
     const { idRuta, valorAnticipo, soporte, fechaEntrega } = req.body;
 
-    // Verificar que la ruta existe
-    const ruta = await Ruta.findByPk(idRuta);
-    if (!ruta) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ruta no encontrada'
-      });
+    // Verificar que la ruta existe solo si se proporciona
+    let idRutaFinal = idRuta;
+    if (idRuta) {
+      const ruta = await Ruta.findByPk(idRuta);
+      if (!ruta) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ruta no encontrada'
+        });
+      }
+      idRutaFinal = ruta.idRuta;
     }
 
     const anticipo = await AnticipoExcedente.create({
       idConductor: conductor.idConductor,
-      idRuta,
+      idRuta: idRutaFinal,
       valorAnticipo: valorAnticipo || 0,
       valorGastado: 0,
       excedente: 0,
