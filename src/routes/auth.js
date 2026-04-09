@@ -6,6 +6,7 @@ const { authenticate } = require('../middlewares/auth');
 // Rutas públicas
 router.post('/login', authController.login);
 router.post('/register', authController.register);
+router.post('/recover-password', authController.recoverPassword);
 
 // Rutas protegidas
 router.get('/profile', authenticate, authController.getProfile);

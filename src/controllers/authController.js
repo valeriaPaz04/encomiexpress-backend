@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Usuario, Rol, Permiso, RolPermiso, Conductor } = require('../models');
 const { generateToken } = require('../middlewares/auth');
+const { sendPasswordRecoveryEmail } = require('../config/email');
 
 const login = async (req, res) => {
   try {
@@ -224,9 +225,57 @@ const getConductorProfile = async (req, res) => {
   }
 };
 
+const recoverPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email es requerido' 
+      });
+    }
+    
+    const usuario = await Usuario.findOne({ where: { email } });
+    
+    if (!usuario) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No existe usuario con ese email' 
+      });
+    }
+    
+    // Generar nueva contraseña temporal
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    
+    await usuario.update({ password: hashedPassword });
+    
+    // Enviar email con la contraseña temporal
+    try {
+      await sendPasswordRecoveryEmail(email, tempPassword);
+    } catch (emailError) {
+      console.error('Error al enviar email:', emailError.message);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Se ha enviado una contraseña temporal a tu email' 
+    });
+  } catch (error) {
+    console.error('Error en recoverPassword:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al recuperar contraseña', 
+      error: error.message 
+    });
+  }
+};
+
 module.exports = { 
   login, 
   register, 
   getProfile,
-  getConductorProfile 
+  getConductorProfile,
+  recoverPassword
 };
