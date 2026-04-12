@@ -9,7 +9,7 @@ const generarNumeroGuia = async () => {
 };
 
 // Validar estados de encomienda
-const ESTADOS_VALIDOS = ['Pendiente de Recogida', 'En Recogida', 'Programada', 'En Tránsito', 'Entregado', 'Devuelto'];
+const ESTADOS_VALIDOS = ['Pendiente de Recogida', 'En Recogida', 'Programada', 'En Tránsito', 'Entregado', 'Devuelto', 'Activo', 'Inactivo'];
 const METODOS_PAGO_VALIDOS = ['Contraentrega', 'Efectivo', 'Transferencia', 'Nequi'];
 const ESTADOS_PAGO_VALIDOS = ['Pendiente', 'Pagado'];
 
@@ -322,8 +322,15 @@ exports.update = async (req, res) => {
     }
 
     // Calcular total si se actualiza valor
-    const nuevoImpuestos = impuestos !== undefined ? impuestos : encomienda.impuestos;
-    const nuevoValorServicio = valorServicio !== undefined ? valorServicio : encomienda.valorServicio;
+    const parseDecimal = (value) => {
+      if (value === undefined || value === null || value === '') return 0;
+      return typeof value === 'number'
+        ? value
+        : parseFloat(String(value).replace(',', '.')) || 0;
+    };
+
+    const nuevoImpuestos = impuestos !== undefined ? parseDecimal(impuestos) : parseDecimal(encomienda.impuestos);
+    const nuevoValorServicio = valorServicio !== undefined ? parseDecimal(valorServicio) : parseDecimal(encomienda.valorServicio);
     const nuevoTotal = nuevoImpuestos + nuevoValorServicio;
 
     // Para idRuta: si viene un número válido, usarlo; si no, mantener el valor actual
