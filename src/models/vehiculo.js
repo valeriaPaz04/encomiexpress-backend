@@ -29,6 +29,10 @@ const Vehiculo = sequelize.define('Vehiculo', {
     type: DataTypes.STRING(50),
     allowNull: true
   },
+  anio: {
+  type: DataTypes.INTEGER,
+  allowNull: true
+  },
   color: {
     type: DataTypes.STRING(30),
     allowNull: true
@@ -65,6 +69,7 @@ const Vehiculo = sequelize.define('Vehiculo', {
     type: DataTypes.DATEONLY,
     allowNull: true
   }
+  
 }, {
   tableName: 'vehiculo',
   timestamps: false

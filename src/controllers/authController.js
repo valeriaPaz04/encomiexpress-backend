@@ -80,12 +80,12 @@ const login = async (req, res) => {
       data: { 
         token, 
         usuario: { 
-          idUsuario: usuario.idUsuario, 
           nombre: usuario.nombre, 
           apellido: usuario.apellido, 
-          email: usuario.email, 
-          rol: usuario.rol?.nombre,
-          permisos 
+          telefono: usuario.telefono,
+          tipoIdentificacion: usuario.tipoIdentificacion,
+          numeroIdentificacion: usuario.numeroIdentificacion,
+          rol: usuario.rol?.nombre
         },
         conductor: conductorData
       } 
@@ -143,10 +143,11 @@ const register = async (req, res) => {
       data: { 
         token, 
         usuario: { 
-          idUsuario: usuario.idUsuario, 
           nombre: usuario.nombre, 
-          apellido: usuario.apellido, 
-          email: usuario.email 
+          apellido: usuario.apellido,
+          telefono: usuario.telefono,
+          tipoIdentificacion: usuario.tipoIdentificacion,
+          numeroIdentificacion: usuario.numeroIdentificacion
         } 
       } 
     });
@@ -175,7 +176,13 @@ const getProfile = async (req, res) => {
     
     res.json({ 
       success: true, 
-      data: usuario 
+      data: {
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        telefono: usuario.telefono,
+        tipoIdentificacion: usuario.tipoIdentificacion,
+        numeroIdentificacion: usuario.numeroIdentificacion
+      }
     });
   } catch (error) {
     res.status(500).json({ 
@@ -214,7 +221,19 @@ const getConductorProfile = async (req, res) => {
     
     res.json({ 
       success: true, 
-      data: conductor 
+      data: {
+        nombre: conductor.usuario.nombre,
+        apellido: conductor.usuario.apellido,
+        telefono: conductor.usuario.telefono,
+        tipoIdentificacion: conductor.usuario.tipoIdentificacion,
+        numeroIdentificacion: conductor.usuario.numeroIdentificacion,
+        idConductor: conductor.idConductor,
+        categoriaLicencia: conductor.categoriaLicencia,
+        numeroLicencia: conductor.numeroLicencia,
+        vencimientoLicencia: conductor.vencimientoLicencia,
+        estado: conductor.estado,
+        habilitado: conductor.habilitado
+      }
     });
   } catch (error) {
     res.status(500).json({ 
