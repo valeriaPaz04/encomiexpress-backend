@@ -77,7 +77,6 @@ exports.create = async (req, res) => {
   try {
     const { idConductor, idRuta, valorAnticipo, soporte, fechaEntrega } = req.body;
 
-    // Verificar que el conductor existe
     const conductor = await Conductor.findByPk(idConductor);
     if (!conductor) {
       return res.status(404).json({
@@ -86,7 +85,6 @@ exports.create = async (req, res) => {
       });
     }
 
-    // Verificar que la ruta existe solo si se proporciona
     let idRutaFinal = idRuta;
     if (idRuta) {
       const ruta = await Ruta.findByPk(idRuta);
@@ -119,7 +117,8 @@ exports.create = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al crear anticipo',
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
   }
 };
@@ -146,7 +145,6 @@ exports.update = async (req, res) => {
       });
     }
 
-    // Calcular excedente si se proporciona valorGastado
     let newExcedente = excedente;
     if (valorGastado !== undefined) {
       newExcedente = anticipo.valorAnticipo - valorGastado;
@@ -289,14 +287,8 @@ exports.delete = async (req, res) => {
   }
 };
 
-// ============================================
-// MÉTODOS PARA CONDUCTOR LOGUEADO
-// ============================================
-
-// Crear anticipo como conductor logueado
 exports.createMisAnticipo = async (req, res) => {
   try {
-    // Verificar que sea conductor
     if (req.usuario.rol?.nombre !== 'conductor') {
       return res.status(403).json({
         success: false,
@@ -304,7 +296,6 @@ exports.createMisAnticipo = async (req, res) => {
       });
     }
     
-    // Buscar el conductor por el idUsuario del token
     const conductor = await Conductor.findOne({ 
       where: { idUsuario: req.usuario.idUsuario }
     });
@@ -318,7 +309,6 @@ exports.createMisAnticipo = async (req, res) => {
     
     const { idRuta, valorAnticipo, soporte, fechaEntrega } = req.body;
 
-    // Verificar que la ruta existe solo si se proporciona
     let idRutaFinal = idRuta;
     if (idRuta) {
       const ruta = await Ruta.findByPk(idRuta);
@@ -351,6 +341,37 @@ exports.createMisAnticipo = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al crear anticipo',
+      error: error.message
+    });
+  }
+};
+
+// ============================================
+// SUBIR SOPORTE A CLOUDINARY
+// ============================================
+exports.updateSoporte = async (req, res, fileUrl) => {
+  try {
+    const { id } = req.params;
+
+    const anticipo = await AnticipoExcedente.findByPk(id);
+    if (!anticipo) {
+      return res.status(404).json({
+        success: false,
+        message: 'Anticipo no encontrado'
+      });
+    }
+
+    await anticipo.update({ soporte: fileUrl });
+
+    res.json({
+      success: true,
+      message: 'Soporte subido exitosamente',
+      data: { soporte: fileUrl }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar soporte',
       error: error.message
     });
   }
