@@ -349,9 +349,18 @@ exports.createMisAnticipo = async (req, res) => {
 // ============================================
 // SUBIR SOPORTE A CLOUDINARY
 // ============================================
-exports.updateSoporte = async (req, res, fileUrl) => {
+exports.updateSoporte = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se subió ningún archivo'
+      });
+    }
+
+    const fileUrl = req.file.path; // ← Cloudinary pone la URL aquí
 
     const anticipo = await AnticipoExcedente.findByPk(id);
     if (!anticipo) {
