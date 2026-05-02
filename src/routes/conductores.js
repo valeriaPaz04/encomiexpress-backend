@@ -152,7 +152,7 @@ router.post('/mis-anticipos', async (req, res) => {
 router.get('/', conductorController.getAll);
 router.get('/:id', conductorController.getById);
 router.get('/:id/vehiculos', conductorController.getVehiculos);
-router.get('/:id/anticipos', conductorController.getAnticipos);
+router.get('/:id/anticipos', authorize('admin'), conductorController.getAnticipos);
 
 // ============================================
 // RUTAS PROTEGIDAS - ADMIN

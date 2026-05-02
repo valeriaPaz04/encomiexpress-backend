@@ -109,23 +109,16 @@ app.post('/api/seed', async (req, res) => {
   }
 });
 
-// Manejo de errores 404
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Ruta no encontrada'
-  });
+const AppError = require('./utils/AppError');
+const errorHandler = require('./middlewares/errorHandler');
+
+// Middleware para rutas no encontradas (404)
+app.all('*', (req, res, next) => {
+  next(new AppError(`No se pudo encontrar la ruta ${req.originalUrl} en el servidor`, 404));
 });
 
-// Manejo de errores globales
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Error interno del servidor',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
+// Middleware global de manejo de errores (DEBE IR AL FINAL)
+app.use(errorHandler);
 
 // Iniciar servidor
 const startServer = async () => {

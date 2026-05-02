@@ -19,7 +19,8 @@ const Conductor = sequelize.define('Conductor', {
   },
   numeroLicencia: {
     type: DataTypes.STRING(20),
-    allowNull: true
+    allowNull: true,
+    unique: true
   },
   vencimientoLicencia: {
     type: DataTypes.DATEONLY,

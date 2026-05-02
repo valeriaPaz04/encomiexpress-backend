@@ -1,4 +1,5 @@
 const { PropietarioVehiculo, Vehiculo } = require('../models');
+const AppError = require('../utils/AppError');
 
 exports.getAll = async (req, res) => {
   try {
@@ -22,16 +23,13 @@ exports.getAll = async (req, res) => {
   }
 };
 
-exports.getById = async (req, res) => {
+exports.getById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const propietario = await PropietarioVehiculo.findByPk(id);
 
     if (!propietario) {
-      return res.status(404).json({
-        success: false,
-        message: 'Propietario no encontrado'
-      });
+      return next(new AppError('Propietario no encontrado', 404));
     }
 
     res.json({
@@ -39,15 +37,11 @@ exports.getById = async (req, res) => {
       data: propietario
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener propietario',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.create = async (req, res) => {
+exports.create = async (req, res, next) => {
   try {
     const { 
       tipoIdentificacion, 
@@ -59,15 +53,6 @@ exports.create = async (req, res) => {
       tarjetaPropiedad,
       tipoFlota
     } = req.body;
-
-    // Verificar duplicados
-    const existing = await PropietarioVehiculo.findOne({ where: { numeroIdentificacion } });
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: 'El número de identificación ya está registrado'
-      });
-    }
 
     const propietario = await PropietarioVehiculo.create({
       tipoIdentificacion,
@@ -86,15 +71,11 @@ exports.create = async (req, res) => {
       data: propietario
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear propietario',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.update = async (req, res) => {
+exports.update = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { 
@@ -112,21 +93,7 @@ exports.update = async (req, res) => {
     const propietario = await PropietarioVehiculo.findByPk(id);
 
     if (!propietario) {
-      return res.status(404).json({
-        success: false,
-        message: 'Propietario no encontrado'
-      });
-    }
-
-    // Verificar documento duplicado
-    if (numeroIdentificacion && numeroIdentificacion !== propietario.numeroIdentificacion) {
-      const existing = await PropietarioVehiculo.findOne({ where: { numeroIdentificacion } });
-      if (existing) {
-        return res.status(400).json({
-          success: false,
-          message: 'El número de identificación ya está registrado'
-        });
-      }
+      return next(new AppError('Propietario no encontrado', 404));
     }
 
     await propietario.update({
@@ -147,24 +114,17 @@ exports.update = async (req, res) => {
       data: propietario
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar propietario',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.delete = async (req, res) => {
+exports.delete = async (req, res, next) => {
   try {
     const { id } = req.params;
     const propietario = await PropietarioVehiculo.findByPk(id);
 
     if (!propietario) {
-      return res.status(404).json({
-        success: false,
-        message: 'Propietario no encontrado'
-      });
+      return next(new AppError('Propietario no encontrado', 404));
     }
 
     await propietario.update({ habilitado: false });
@@ -174,24 +134,17 @@ exports.delete = async (req, res) => {
       message: 'Propietario deshabilitado exitosamente'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar propietario',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getVehiculos = async (req, res) => {
+exports.getVehiculos = async (req, res, next) => {
   try {
     const { id } = req.params;
     
     const propietario = await PropietarioVehiculo.findByPk(id);
     if (!propietario) {
-      return res.status(404).json({
-        success: false,
-        message: 'Propietario no encontrado'
-      });
+      return next(new AppError('Propietario no encontrado', 404));
     }
 
     const vehiculos = await Vehiculo.findAll({
@@ -203,10 +156,6 @@ exports.getVehiculos = async (req, res) => {
       data: vehiculos
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener vehículos del propietario',
-      error: error.message
-    });
+    next(error);
   }
 };
