@@ -1,6 +1,7 @@
 const { Conductor, Usuario, Vehiculo, AnticipoExcedente, Ruta } = require('../models');
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
+const AppError = require('../utils/AppError');
 
 exports.getAll = async (req, res) => {
   try {
@@ -28,7 +29,7 @@ exports.getAll = async (req, res) => {
   }
 };
 
-exports.getById = async (req, res) => {
+exports.getById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const conductor = await Conductor.findByPk(id, {
@@ -36,10 +37,7 @@ exports.getById = async (req, res) => {
     });
 
     if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
+      return next(new AppError('Conductor no encontrado', 404));
     }
 
     res.json({
@@ -47,15 +45,11 @@ exports.getById = async (req, res) => {
       data: conductor
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.create = async (req, res) => {
+exports.create = async (req, res, next) => {
   try {
     console.log('=== POST /conductores - Datos recibidos ===');
     console.log(req.body);
@@ -133,18 +127,21 @@ exports.create = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('=== ERROR en create conductor ===');
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear conductor',
-      error: error.message,
-      stack: error.stack
-    });
+    // Validar si es un error de llave única de Sequelize
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      // Revisar qué campo causó el error
+      if (error.errors.some(e => e.path === 'numeroLicencia')) {
+        return next(new (require('../utils/AppError'))('El número de licencia ya está registrado para otro conductor.', 400));
+      }
+      if (error.errors.some(e => e.path === 'idUsuario')) {
+        return next(new (require('../utils/AppError'))('Este usuario ya está registrado como conductor.', 400));
+      }
+    }
+    next(error);
   }
 };
 
-exports.update = async (req, res) => {
+exports.update = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { 
@@ -160,10 +157,7 @@ exports.update = async (req, res) => {
     });
 
     if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
+      return next(new AppError('Conductor no encontrado', 404));
     }
 
     await conductor.update({
@@ -180,24 +174,23 @@ exports.update = async (req, res) => {
       data: conductor
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar conductor',
-      error: error.message
-    });
+    // Validar si es un error de llave única de Sequelize
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      if (error.errors.some(e => e.path === 'numeroLicencia')) {
+        return next(new AppError('El número de licencia ya está registrado para otro conductor.', 400));
+      }
+    }
+    next(error);
   }
 };
 
-exports.delete = async (req, res) => {
+exports.delete = async (req, res, next) => {
   try {
     const { id } = req.params;
     const conductor = await Conductor.findByPk(id);
 
     if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
+      return next(new AppError('Conductor no encontrado', 404));
     }
 
     await conductor.update({ habilitado: false });
@@ -207,24 +200,17 @@ exports.delete = async (req, res) => {
       message: 'Conductor deshabilitado exitosamente'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getVehiculos = async (req, res) => {
+exports.getVehiculos = async (req, res, next) => {
   try {
     const { id } = req.params;
     
     const conductor = await Conductor.findByPk(id);
     if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
+      return next(new AppError('Conductor no encontrado', 404));
     }
 
     const vehiculos = await Vehiculo.findAll({
@@ -236,24 +222,17 @@ exports.getVehiculos = async (req, res) => {
       data: vehiculos
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener vehículos del conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getAnticipos = async (req, res) => {
+exports.getAnticipos = async (req, res, next) => {
   try {
     const { id } = req.params;
     
     const conductor = await Conductor.findByPk(id);
     if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
+      return next(new AppError('Conductor no encontrado', 404));
     }
 
     const anticipos = await AnticipoExcedente.findAll({
@@ -266,11 +245,7 @@ exports.getAnticipos = async (req, res) => {
       data: anticipos
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener anticipos del conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 

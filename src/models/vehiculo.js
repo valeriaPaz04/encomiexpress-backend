@@ -65,6 +65,7 @@ const Vehiculo = sequelize.define('Vehiculo', {
     type: DataTypes.DATEONLY,
     allowNull: true
   }
+  
 }, {
   tableName: 'vehiculo',
   timestamps: false

@@ -3,7 +3,6 @@ const { AnticipoExcedente, Conductor, Ruta, Vehiculo, Destino } = require('../mo
 exports.getAll = async (req, res) => {
   try {
     const { idConductor, estado } = req.query;
-    console.log('GET /api/anticipos - idConductor:', idConductor, 'estado:', estado);
     
     const where = {};
     if (idConductor) where.idConductor = idConductor;
@@ -76,9 +75,8 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { idConductor, idRuta, valorAnticipo, tipo, soporte, fechaEntrega, fechaMaxima } = req.body;
+    const { idConductor, idRuta, valorAnticipo, soporte, fechaEntrega } = req.body;
 
-    // Verificar que el conductor existe
     const conductor = await Conductor.findByPk(idConductor);
     if (!conductor) {
       return res.status(404).json({
@@ -87,29 +85,27 @@ exports.create = async (req, res) => {
       });
     }
 
-    // idRuta es opcional (nullable)
-    let ruta = null;
+    let idRutaFinal = idRuta;
     if (idRuta) {
-      ruta = await Ruta.findByPk(idRuta);
+      const ruta = await Ruta.findByPk(idRuta);
       if (!ruta) {
         return res.status(404).json({
           success: false,
           message: 'Ruta no encontrada'
         });
       }
+      idRutaFinal = ruta.idRuta;
     }
 
     const anticipo = await AnticipoExcedente.create({
       idConductor,
-      idRuta: ruta?.idRuta || null,
+      idRuta: idRutaFinal,
       valorAnticipo: valorAnticipo || 0,
       valorGastado: 0,
       excedente: 0,
-      tipo: tipo || 'Anticipo',
       estado: 'pendiente',
       soporte,
-      fechaEntrega,
-      fechaMaxima
+      fechaEntrega
     });
 
     res.status(201).json({
@@ -121,7 +117,8 @@ exports.create = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al crear anticipo',
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
   }
 };
@@ -148,7 +145,6 @@ exports.update = async (req, res) => {
       });
     }
 
-    // Calcular excedente si se proporciona valorGastado
     let newExcedente = excedente;
     if (valorGastado !== undefined) {
       newExcedente = anticipo.valorAnticipo - valorGastado;
@@ -291,14 +287,8 @@ exports.delete = async (req, res) => {
   }
 };
 
-// ============================================
-// MÉTODOS PARA CONDUCTOR LOGUEADO
-// ============================================
-
-// Crear anticipo como conductor logueado
 exports.createMisAnticipo = async (req, res) => {
   try {
-    // Verificar que sea conductor
     if (req.usuario.rol?.nombre !== 'conductor') {
       return res.status(403).json({
         success: false,
@@ -306,7 +296,6 @@ exports.createMisAnticipo = async (req, res) => {
       });
     }
     
-    // Buscar el conductor por el idUsuario del token
     const conductor = await Conductor.findOne({ 
       where: { idUsuario: req.usuario.idUsuario }
     });
@@ -320,18 +309,21 @@ exports.createMisAnticipo = async (req, res) => {
     
     const { idRuta, valorAnticipo, soporte, fechaEntrega } = req.body;
 
-    // Verificar que la ruta existe
-    const ruta = await Ruta.findByPk(idRuta);
-    if (!ruta) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ruta no encontrada'
-      });
+    let idRutaFinal = idRuta;
+    if (idRuta) {
+      const ruta = await Ruta.findByPk(idRuta);
+      if (!ruta) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ruta no encontrada'
+        });
+      }
+      idRutaFinal = ruta.idRuta;
     }
 
     const anticipo = await AnticipoExcedente.create({
       idConductor: conductor.idConductor,
-      idRuta,
+      idRuta: idRutaFinal,
       valorAnticipo: valorAnticipo || 0,
       valorGastado: 0,
       excedente: 0,
@@ -349,6 +341,46 @@ exports.createMisAnticipo = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al crear anticipo',
+      error: error.message
+    });
+  }
+};
+
+// ============================================
+// SUBIR SOPORTE A CLOUDINARY
+// ============================================
+exports.updateSoporte = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se subió ningún archivo'
+      });
+    }
+
+    const fileUrl = req.file.path; // ← Cloudinary pone la URL aquí
+
+    const anticipo = await AnticipoExcedente.findByPk(id);
+    if (!anticipo) {
+      return res.status(404).json({
+        success: false,
+        message: 'Anticipo no encontrado'
+      });
+    }
+
+    await anticipo.update({ soporte: fileUrl });
+
+    res.json({
+      success: true,
+      message: 'Soporte subido exitosamente',
+      data: { soporte: fileUrl }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar soporte',
       error: error.message
     });
   }

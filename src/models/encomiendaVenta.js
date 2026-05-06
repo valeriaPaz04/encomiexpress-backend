@@ -12,11 +12,10 @@ const EncomiendaVenta = sequelize.define('EncomiendaVenta', {
     type: DataTypes.INTEGER,
     allowNull: false
   },
-idRuta: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'idRuta'
-    },
+  idRuta: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
   numeroGuia: {
     type: DataTypes.STRING(50),
     allowNull: false,

@@ -14,19 +14,20 @@ const Conductor = sequelize.define('Conductor', {
     unique: true
   },
   categoriaLicencia: {
-    type: DataTypes.STRING(10),
+    type: DataTypes.STRING(20),
     allowNull: true
   },
   numeroLicencia: {
     type: DataTypes.STRING(20),
-    allowNull: true
+    allowNull: true,
+    unique: true
   },
   vencimientoLicencia: {
     type: DataTypes.DATEONLY,
     allowNull: true
   },
   estado: {
-    type: DataTypes.STRING(30),
+    type: DataTypes.STRING(20),
     defaultValue: 'activo'
   },
   habilitado: {

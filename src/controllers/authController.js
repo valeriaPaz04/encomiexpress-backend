@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Usuario, Rol, Permiso, RolPermiso, Conductor } = require('../models');
 const { generateToken } = require('../middlewares/auth');
+const { sendPasswordRecoveryEmail } = require('../config/email');
 
 const login = async (req, res) => {
   try {
@@ -79,12 +80,12 @@ const login = async (req, res) => {
       data: { 
         token, 
         usuario: { 
-          idUsuario: usuario.idUsuario, 
           nombre: usuario.nombre, 
           apellido: usuario.apellido, 
-          email: usuario.email, 
-          rol: usuario.rol?.nombre,
-          permisos 
+          telefono: usuario.telefono,
+          tipoIdentificacion: usuario.tipoIdentificacion,
+          numeroIdentificacion: usuario.numeroIdentificacion,
+          rol: usuario.rol?.nombre
         },
         conductor: conductorData
       } 
@@ -142,10 +143,11 @@ const register = async (req, res) => {
       data: { 
         token, 
         usuario: { 
-          idUsuario: usuario.idUsuario, 
           nombre: usuario.nombre, 
-          apellido: usuario.apellido, 
-          email: usuario.email 
+          apellido: usuario.apellido,
+          telefono: usuario.telefono,
+          tipoIdentificacion: usuario.tipoIdentificacion,
+          numeroIdentificacion: usuario.numeroIdentificacion
         } 
       } 
     });
@@ -174,7 +176,13 @@ const getProfile = async (req, res) => {
     
     res.json({ 
       success: true, 
-      data: usuario 
+      data: {
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        telefono: usuario.telefono,
+        tipoIdentificacion: usuario.tipoIdentificacion,
+        numeroIdentificacion: usuario.numeroIdentificacion
+      }
     });
   } catch (error) {
     res.status(500).json({ 
@@ -213,7 +221,19 @@ const getConductorProfile = async (req, res) => {
     
     res.json({ 
       success: true, 
-      data: conductor 
+      data: {
+        nombre: conductor.usuario.nombre,
+        apellido: conductor.usuario.apellido,
+        telefono: conductor.usuario.telefono,
+        tipoIdentificacion: conductor.usuario.tipoIdentificacion,
+        numeroIdentificacion: conductor.usuario.numeroIdentificacion,
+        idConductor: conductor.idConductor,
+        categoriaLicencia: conductor.categoriaLicencia,
+        numeroLicencia: conductor.numeroLicencia,
+        vencimientoLicencia: conductor.vencimientoLicencia,
+        estado: conductor.estado,
+        habilitado: conductor.habilitado
+      }
     });
   } catch (error) {
     res.status(500).json({ 
@@ -224,9 +244,57 @@ const getConductorProfile = async (req, res) => {
   }
 };
 
+const recoverPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email es requerido' 
+      });
+    }
+    
+    const usuario = await Usuario.findOne({ where: { email } });
+    
+    if (!usuario) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No existe usuario con ese email' 
+      });
+    }
+    
+    // Generar nueva contraseña temporal
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    
+    await usuario.update({ password: hashedPassword });
+    
+    // Enviar email con la contraseña temporal
+    try {
+      await sendPasswordRecoveryEmail(email, tempPassword);
+    } catch (emailError) {
+      console.error('Error al enviar email:', emailError.message);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Se ha enviado una contraseña temporal a tu email' 
+    });
+  } catch (error) {
+    console.error('Error en recoverPassword:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al recuperar contraseña', 
+      error: error.message 
+    });
+  }
+};
+
 module.exports = { 
   login, 
   register, 
   getProfile,
-  getConductorProfile 
+  getConductorProfile,
+  recoverPassword
 };
