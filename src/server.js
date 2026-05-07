@@ -16,6 +16,7 @@ const anticipoRoutes = require('./routes/anticipos');
 const clienteRoutes = require('./routes/clientes'); // Rutas de clientes
 const encomiendaRoutes = require('./routes/encomiendas');
 const rolRoutes = require('./routes/roles');
+const permisosRoutes = require('./routes/permisos');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/conductores', conductorRoutes);
+app.use('/api/permisos', permisosRoutes);
 app.use('/api/propietarios', propietarioRoutes);
 app.use('/api/vehiculos', vehiculoRoutes);
 app.use('/api/destinos', destinoRoutes);
@@ -45,7 +47,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Endpoint para inicializar datos de la base de datos
-app.post('/api/seed', async (req, res) => {
+app.post('/api/seed', async (req, res, next) => {
   try {
     const bcrypt = require('bcryptjs');
     const { Rol, Permiso, Usuario } = require('./models');
@@ -73,7 +75,7 @@ app.post('/api/seed', async (req, res) => {
         { nombre: 'anticipos', descripcion: 'Gestión de anticipos' }
       ]);
     }
-    
+
     // Eliminar usuario admin existente si existe
     await Usuario.destroy({ where: { email: 'admin@encomiexpress.com' } });
     
@@ -100,12 +102,7 @@ app.post('/api/seed', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error al inicializar datos:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al inicializar datos',
-      error: error.message 
-    });
+    next(error);
   }
 });
 

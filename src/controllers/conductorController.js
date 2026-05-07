@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const AppError = require('../utils/AppError');
 
-exports.getAll = async (req, res) => {
+exports.getAll = async (req, res, next) => {
   try {
     const { estado, habilitado } = req.query;
     
@@ -21,11 +21,7 @@ exports.getAll = async (req, res) => {
       data: conductores
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener conductores',
-      error: error.message
-    });
+    next(error);
   }
 };
 
@@ -254,14 +250,11 @@ exports.getAnticipos = async (req, res, next) => {
 // ============================================
 
 // Obtener mis anticipos como conductor logueado
-exports.getMisAnticipos = async (req, res) => {
+exports.getMisAnticipos = async (req, res, next) => {
   try {
     // Verificar que sea conductor
     if (req.usuario.rol?.nombre !== 'conductor') {
-      return res.status(403).json({
-        success: false,
-        message: 'Solo los conductores pueden acceder a esta información'
-      });
+      return next(new AppError('Solo los conductores pueden acceder a esta información', 403));
     }
     
     // Buscar el conductor por el idUsuario del token
@@ -270,12 +263,9 @@ exports.getMisAnticipos = async (req, res) => {
     });
     
     if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
+      return next(new AppError('Conductor no encontrado', 404));
     }
-    
+
     // Obtener anticipos del conductor
     const anticipos = await AnticipoExcedente.findAll({
       where: { idConductor: conductor.idConductor },
@@ -287,10 +277,17 @@ exports.getMisAnticipos = async (req, res) => {
       data: anticipos
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener anticipos',
-      error: error.message
-    });
+    next(error);
   }
+};
+
+module.exports = {
+  getAll: exports.getAll,
+  getById: exports.getById,
+  create: exports.create,
+  update: exports.update,
+  delete: exports.delete,
+  getVehiculos: exports.getVehiculos,
+  getAnticipos: exports.getAnticipos,
+  getMisAnticipos: exports.getMisAnticipos
 };

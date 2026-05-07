@@ -1,4 +1,5 @@
 const { EncomiendaVenta, Destinatario, Paquete, Cliente, Ruta, sequelize } = require('../models');
+const AppError = require('../utils/AppError');
 
 // Generar número de guía único
 const generarNumeroGuia = async () => {
@@ -14,7 +15,7 @@ const METODOS_PAGO_VALIDOS = ['Contraentrega', 'Efectivo', 'Transferencia', 'Neq
 const ESTADOS_PAGO_VALIDOS = ['Pendiente', 'Pagado'];
 
 // Listar todas las encomiendas
-exports.getAll = async (req, res) => {
+exports.getAll = async (req, res, next) => {
   try {
     const { estado, idCliente, fechaInicio, fechaFin } = req.query;
     
@@ -46,16 +47,12 @@ exports.getAll = async (req, res) => {
       data: encomiendas
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener encomiendas',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Obtener una encomienda por ID
-exports.getById = async (req, res) => {
+exports.getById = async (req, res, next) => {
   try {
     const { id } = req.params;
     
@@ -75,10 +72,7 @@ exports.getById = async (req, res) => {
     });
 
     if (!encomienda) {
-      return res.status(404).json({
-        success: false,
-        message: 'Encomienda no encontrada'
-      });
+      return next(new AppError('Encomienda no encontrada', 404));
     }
 
     res.json({
@@ -86,16 +80,12 @@ exports.getById = async (req, res) => {
       data: encomienda
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener encomienda',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Obtener una encomienda por número de guía
-exports.getByGuia = async (req, res) => {
+exports.getByGuia = async (req, res, next) => {
   try {
     const { numeroGuia } = req.params;
     
@@ -113,10 +103,7 @@ exports.getByGuia = async (req, res) => {
     });
 
     if (!encomienda) {
-      return res.status(404).json({
-        success: false,
-        message: 'Encomienda no encontrada'
-      });
+      return next(new AppError('Encomienda no encontrada', 404));
     }
 
     res.json({
@@ -124,16 +111,12 @@ exports.getByGuia = async (req, res) => {
       data: encomienda
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al buscar encomienda',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Crear una nueva encomienda con destinatario y paquetes
-exports.create = async (req, res) => {
+exports.create = async (req, res, next) => {
   const transaction = await sequelize.transaction();
   
   try {
@@ -157,10 +140,7 @@ exports.create = async (req, res) => {
     const cliente = await Cliente.findByPk(idCliente);
     if (!cliente) {
       await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Cliente no encontrado'
-      });
+      return next(new AppError('Cliente no encontrado', 400));
     }
 
     // Validar ruta existe (opcional por ahora — módulo de rutas pendiente)
@@ -168,29 +148,20 @@ exports.create = async (req, res) => {
       const ruta = await Ruta.findByPk(idRuta);
       if (!ruta) {
         await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Ruta no encontrada'
-        });
+        return next(new AppError('Ruta no encontrada', 400));
       }
     }
 
     // Validar método de pago
     if (metodoPago && !METODOS_PAGO_VALIDOS.some(v => v.toLowerCase() === metodoPago.toLowerCase())) {
       await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: `Método de pago inválido. Opciones: ${METODOS_PAGO_VALIDOS.join(', ')}`
-      });
+      return next(new AppError(`Método de pago inválido. Opciones: ${METODOS_PAGO_VALIDOS.join(', ')}`, 400));
     }
 
     // Validar estado de pago
     if (estadoPago && !ESTADOS_PAGO_VALIDOS.some(v => v.toLowerCase() === estadoPago.toLowerCase())) {
       await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: `Estado de pago inválido. Opciones: ${ESTADOS_PAGO_VALIDOS.join(', ')}`
-      });
+      return next(new AppError(`Estado de pago inválido. Opciones: ${ESTADOS_PAGO_VALIDOS.join(', ')}`, 400));
     }
 
     // Generar número de guía único
@@ -265,16 +236,12 @@ exports.create = async (req, res) => {
     });
   } catch (error) {
     await transaction.rollback();
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear encomienda',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Actualizar una encomienda
-exports.update = async (req, res) => {
+exports.update = async (req, res, next) => {
   const transaction = await sequelize.transaction();
   
   try {
@@ -299,26 +266,17 @@ exports.update = async (req, res) => {
 
     if (!encomienda) {
       await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Encomienda no encontrada'
-      });
+      return next(new AppError('Encomienda no encontrada', 404));
     }
 
     // Validar método de pago
     if (metodoPago && !METODOS_PAGO_VALIDOS.some(v => v.toLowerCase() === metodoPago.toLowerCase())) {
-      return res.status(400).json({
-        success: false,
-        message: `Método de pago inválido. Opciones: ${METODOS_PAGO_VALIDOS.join(', ')}`
-      });
+      return next(new AppError(`Método de pago inválido. Opciones: ${METODOS_PAGO_VALIDOS.join(', ')}`, 400));
     }
 
     // Validar estado de pago
     if (estadoPago && !ESTADOS_PAGO_VALIDOS.some(v => v.toLowerCase() === estadoPago.toLowerCase())) {
-      return res.status(400).json({
-        success: false,
-        message: `Estado de pago inválido. Opciones: ${ESTADOS_PAGO_VALIDOS.join(', ')}`
-      });
+      return next(new AppError(`Estado de pago inválido. Opciones: ${ESTADOS_PAGO_VALIDOS.join(', ')}`, 400));
     }
 
     // Calcular total si se actualiza valor
@@ -415,16 +373,12 @@ exports.update = async (req, res) => {
     });
   } catch (error) {
     await transaction.rollback();
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar encomienda',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Cambiar estado de la encomienda
-exports.cambiarEstado = async (req, res) => {
+exports.cambiarEstado = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
@@ -432,18 +386,12 @@ exports.cambiarEstado = async (req, res) => {
     const encomienda = await EncomiendaVenta.findByPk(id);
 
     if (!encomienda) {
-      return res.status(404).json({
-        success: false,
-        message: 'Encomienda no encontrada'
-      });
+      return next(new AppError('Encomienda no encontrada', 404));
     }
 
     // Validar estado
     if (!ESTADOS_VALIDOS.some(v => v.toLowerCase() === estado.toLowerCase())) {
-      return res.status(400).json({
-        success: false,
-        message: `Estado inválido. Opciones: ${ESTADOS_VALIDOS.join(', ')}`
-      });
+      return next(new AppError(`Estado inválido. Opciones: ${ESTADOS_VALIDOS.join(', ')}`, 400));
     }
 
     await encomienda.update({ estado: estado.toLowerCase() });
@@ -454,26 +402,19 @@ exports.cambiarEstado = async (req, res) => {
       data: encomienda
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al cambiar estado',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Eliminar (inhabilitar) una encomienda
-exports.delete = async (req, res) => {
+exports.delete = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const encomienda = await EncomiendaVenta.findByPk(id);
 
     if (!encomienda) {
-      return res.status(404).json({
-        success: false,
-        message: 'Encomienda no encontrada'
-      });
+      return next(new AppError('Encomienda no encontrada', 404));
     }
 
     await encomienda.update({ habilitado: false });
@@ -483,16 +424,12 @@ exports.delete = async (req, res) => {
       message: 'Encomienda deshabilitada exitosamente'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar encomienda',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Agregar paquete a una encomienda existente
-exports.agregarPaquete = async (req, res) => {
+exports.agregarPaquete = async (req, res, next) => {
   try {
     const { idEncomiendaVenta } = req.params;
     const {
@@ -507,10 +444,7 @@ exports.agregarPaquete = async (req, res) => {
     const encomienda = await EncomiendaVenta.findByPk(idEncomiendaVenta);
 
     if (!encomienda) {
-      return res.status(404).json({
-        success: false,
-        message: 'Encomienda no encontrada'
-      });
+      return next(new AppError('Encomienda no encontrada', 404));
     }
 
     const paquete = await Paquete.create({
@@ -529,26 +463,19 @@ exports.agregarPaquete = async (req, res) => {
       data: paquete
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al agregar paquete',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Habilitar/Inhabilitar una encomienda (toggle)
-exports.toggleHabilitado = async (req, res) => {
+exports.toggleHabilitado = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const encomienda = await EncomiendaVenta.findByPk(id);
 
     if (!encomienda) {
-      return res.status(404).json({
-        success: false,
-        message: 'Encomienda no encontrada'
-      });
+      return next(new AppError('Encomienda no encontrada', 404));
     }
 
     // Actualizar y obtener el valor nuevo
@@ -571,16 +498,12 @@ exports.toggleHabilitado = async (req, res) => {
       data: encomiendaActualizada
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al cambiar estado de habilitado',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Agregar destinatario a una encomienda existente
-exports.agregarDestinatario = async (req, res) => {
+exports.agregarDestinatario = async (req, res, next) => {
   try {
     const { idEncomiendaVenta } = req.params;
     const {
@@ -592,10 +515,7 @@ exports.agregarDestinatario = async (req, res) => {
     const encomienda = await EncomiendaVenta.findByPk(idEncomiendaVenta);
 
     if (!encomienda) {
-      return res.status(404).json({
-        success: false,
-        message: 'Encomienda no encontrada'
-      });
+      return next(new AppError('Encomienda no encontrada', 404));
     }
 
     const destinatario = await Destinatario.create({
@@ -611,10 +531,19 @@ exports.agregarDestinatario = async (req, res) => {
       data: destinatario
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al agregar destinatario',
-      error: error.message
-    });
+    next(error);
   }
+};
+
+module.exports = {
+  getAll: exports.getAll,
+  getById: exports.getById,
+  getByGuia: exports.getByGuia,
+  create: exports.create,
+  update: exports.update,
+  cambiarEstado: exports.cambiarEstado,
+  delete: exports.delete,
+  agregarPaquete: exports.agregarPaquete,
+  toggleHabilitado: exports.toggleHabilitado,
+  agregarDestinatario: exports.agregarDestinatario
 };

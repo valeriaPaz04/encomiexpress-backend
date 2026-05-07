@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const conductorController = require('../controllers/conductorController');
 const anticipoController = require('../controllers/anticipoExcedenteController');
-const { authenticate, authorize } = require('../middlewares/auth');
+const { authenticate, authorize, authorizePermission } = require('../middlewares/auth');
 
 // ============================================
 // RUTAS PROTEGIDAS - PRIMERO PARA EVITAR CONFLICTO CON :id
@@ -152,13 +152,13 @@ router.post('/mis-anticipos', async (req, res) => {
 router.get('/', conductorController.getAll);
 router.get('/:id', conductorController.getById);
 router.get('/:id/vehiculos', conductorController.getVehiculos);
-router.get('/:id/anticipos', authorize('admin'), conductorController.getAnticipos);
+router.get('/:id/anticipos', authorizePermission('listar_anticipo'), conductorController.getAnticipos);
 
 // ============================================
 // RUTAS PROTEGIDAS - ADMIN
 // ============================================
-router.post('/', authorize('admin'), conductorController.create);
-router.put('/:id', authorize('admin'), conductorController.update);
-router.delete('/:id', authorize('admin'), conductorController.delete);
+router.post('/', authorizePermission('registrar_conductor'), conductorController.create);
+router.put('/:id', authorizePermission('actualizar_conductor'), conductorController.update);
+router.delete('/:id', authorizePermission('actualizar_conductor'), conductorController.delete);
 
 module.exports = router;

@@ -235,3 +235,13 @@ exports.getAvailable = async (req, res) => {
     });
   }
 };
+
+module.exports = {
+  getAll: exports.getAll,
+  getById: exports.getById,
+  create: exports.create,
+  update: exports.update,
+  remove: exports.delete,
+  getEncomiendas: exports.getEncomiendas,
+  getAvailable: exports.getAvailable
+};

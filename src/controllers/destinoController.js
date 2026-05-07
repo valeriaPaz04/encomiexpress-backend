@@ -1,6 +1,7 @@
 const { Destino, Ruta } = require('../models');
+const AppError = require('../utils/AppError');
 
-exports.getAll = async (req, res) => {
+exports.getAll = async (req, res, next) => {
   try {
     const { habilitado } = req.query;
     
@@ -14,24 +15,17 @@ exports.getAll = async (req, res) => {
       data: destinos
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener destinos',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getById = async (req, res) => {
+exports.getById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const destino = await Destino.findByPk(id);
 
     if (!destino) {
-      return res.status(404).json({
-        success: false,
-        message: 'Destino no encontrado'
-      });
+      return next(new AppError('Destino no encontrado', 404));
     }
 
     res.json({
@@ -39,15 +33,11 @@ exports.getById = async (req, res) => {
       data: destino
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener destino',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.create = async (req, res) => {
+exports.create = async (req, res, next) => {
   try {
     const { departamento, ciudad, tarifaBase } = req.body;
 
@@ -63,15 +53,11 @@ exports.create = async (req, res) => {
       data: destino
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear destino',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.update = async (req, res) => {
+exports.update = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { departamento, ciudad, tarifaBase, habilitado } = req.body;
@@ -79,10 +65,7 @@ exports.update = async (req, res) => {
     const destino = await Destino.findByPk(id);
 
     if (!destino) {
-      return res.status(404).json({
-        success: false,
-        message: 'Destino no encontrado'
-      });
+      return next(new AppError('Destino no encontrado', 404));
     }
 
     await destino.update({
@@ -98,24 +81,17 @@ exports.update = async (req, res) => {
       data: destino
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar destino',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.delete = async (req, res) => {
+exports.delete = async (req, res, next) => {
   try {
     const { id } = req.params;
     const destino = await Destino.findByPk(id);
 
     if (!destino) {
-      return res.status(404).json({
-        success: false,
-        message: 'Destino no encontrado'
-      });
+      return next(new AppError('Destino no encontrado', 404));
     }
 
     await destino.update({ habilitado: false });
@@ -125,24 +101,17 @@ exports.delete = async (req, res) => {
       message: 'Destino deshabilitado exitosamente'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar destino',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getRutas = async (req, res) => {
+exports.getRutas = async (req, res, next) => {
   try {
     const { id } = req.params;
     
     const destino = await Destino.findByPk(id);
     if (!destino) {
-      return res.status(404).json({
-        success: false,
-        message: 'Destino no encontrado'
-      });
+      return next(new AppError('Destino no encontrado', 404));
     }
 
     const rutas = await Ruta.findAll({
@@ -154,10 +123,15 @@ exports.getRutas = async (req, res) => {
       data: rutas
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener rutas del destino',
-      error: error.message
-    });
+    next(error);
   }
+};
+
+module.exports = {
+  getAll: exports.getAll,
+  getById: exports.getById,
+  create: exports.create,
+  update: exports.update,
+  delete: exports.delete,
+  getRutas: exports.getRutas
 };

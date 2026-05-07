@@ -278,3 +278,13 @@ exports.toggleHabilitado = async (req, res) => {
     });
   }
 };
+
+module.exports = {
+  getAll: exports.getAll,
+  getById: exports.getById,
+  create: exports.create,
+  update: exports.update,
+  delete: exports.delete,
+  changePassword: exports.changePassword,
+  toggleHabilitado: exports.toggleHabilitado
+};

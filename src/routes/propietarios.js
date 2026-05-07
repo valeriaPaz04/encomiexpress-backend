@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const { validate } = require('../middlewares/validation');
 const propietarioController = require('../controllers/propietarioVehiculoController');
+const { authenticate, authorizePermission } = require('../middlewares/auth');
 
 // Validaciones
 const createValidation = [
@@ -12,11 +13,12 @@ const createValidation = [
   body('apellido').notEmpty().withMessage('Apellido es requerido')
 ];
 
-// Rutas PÚBLICAS
-router.get('/', propietarioController.getAll);
-router.get('/:id', propietarioController.getById);
-router.post('/', createValidation, validate, propietarioController.create);
-router.put('/:id', propietarioController.update);
-router.delete('/:id', propietarioController.delete);
+router.use(authenticate);
+
+router.get('/', authorizePermission('gestion_transporte'), propietarioController.getAll);
+router.get('/:id', authorizePermission('gestion_transporte'), propietarioController.getById);
+router.post('/', authorizePermission('gestion_transporte'), createValidation, validate, propietarioController.create);
+router.put('/:id', authorizePermission('gestion_transporte'), propietarioController.update);
+router.delete('/:id', authorizePermission('gestion_transporte'), propietarioController.delete);
 
 module.exports = router;

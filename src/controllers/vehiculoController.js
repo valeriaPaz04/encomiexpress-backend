@@ -1,6 +1,6 @@
 const { Vehiculo, Conductor, PropietarioVehiculo, Ruta } = require('../models');
 
-exports.getAll = async (req, res) => {
+exports.getAll = async (req, res, next) => {
   try {
     const { estado, habilitado } = req.query;
     
@@ -21,15 +21,11 @@ exports.getAll = async (req, res) => {
       data: vehiculos
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener vehículos',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getById = async (req, res) => {
+exports.getById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const vehiculo = await Vehiculo.findByPk(id, {
@@ -40,10 +36,7 @@ exports.getById = async (req, res) => {
     });
 
     if (!vehiculo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Vehículo no encontrado'
-      });
+      return next(new AppError('Vehículo no encontrado', 404));
     }
 
     res.json({
@@ -51,15 +44,11 @@ exports.getById = async (req, res) => {
       data: vehiculo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener vehículo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.create = async (req, res) => {
+exports.create = async (req, res, next) => {
   try {
     const { 
       idConductor,
@@ -78,10 +67,7 @@ exports.create = async (req, res) => {
     // Verificar duplicados de placa
     const existing = await Vehiculo.findOne({ where: { placa } });
     if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: 'La placa ya está registrada'
-      });
+      return next(new AppError('La placa ya está registrada', 400));
     }
 
     const vehiculo = await Vehiculo.create({
@@ -106,15 +92,11 @@ exports.create = async (req, res) => {
       data: vehiculo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear vehículo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.update = async (req, res) => {
+exports.update = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { 
@@ -136,20 +118,14 @@ exports.update = async (req, res) => {
     const vehiculo = await Vehiculo.findByPk(id);
 
     if (!vehiculo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Vehículo no encontrado'
-      });
+      return next(new AppError('Vehículo no encontrado', 404));
     }
 
     // Verificar placa duplicada
     if (placa && placa !== vehiculo.placa) {
       const existing = await Vehiculo.findOne({ where: { placa } });
       if (existing) {
-        return res.status(400).json({
-          success: false,
-          message: 'La placa ya está registrada'
-        });
+        return next(new AppError('La placa ya está registrada', 400));
       }
     }
 
@@ -175,24 +151,17 @@ exports.update = async (req, res) => {
       data: vehiculo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar vehículo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.delete = async (req, res) => {
+exports.delete = async (req, res, next) => {
   try {
     const { id } = req.params;
     const vehiculo = await Vehiculo.findByPk(id);
 
     if (!vehiculo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Vehículo no encontrado'
-      });
+      return next(new AppError('Vehículo no encontrado', 404));
     }
 
     await vehiculo.update({ habilitado: false });
@@ -202,24 +171,17 @@ exports.delete = async (req, res) => {
       message: 'Vehículo deshabilitado exitosamente'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar vehículo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getRutas = async (req, res) => {
+exports.getRutas = async (req, res, next) => {
   try {
     const { id } = req.params;
     
     const vehiculo = await Vehiculo.findByPk(id);
     if (!vehiculo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Vehículo no encontrado'
-      });
+      return next(new AppError('Vehículo no encontrado', 404));
     }
 
     const rutas = await Ruta.findAll({
@@ -235,15 +197,11 @@ exports.getRutas = async (req, res) => {
       data: rutas
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener rutas del vehículo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.assignDriver = async (req, res) => {
+exports.assignDriver = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { idConductor } = req.body;
@@ -251,19 +209,13 @@ exports.assignDriver = async (req, res) => {
     const vehiculo = await Vehiculo.findByPk(id);
 
     if (!vehiculo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Vehículo no encontrado'
-      });
+      return next(new AppError('Vehículo no encontrado', 404));
     }
 
     // Verificar que el conductor existe
     const conductor = await Conductor.findByPk(idConductor);
     if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
+      return next(new AppError('Conductor no encontrado', 404));
     }
 
     await vehiculo.update({ idConductor });
@@ -274,10 +226,16 @@ exports.assignDriver = async (req, res) => {
       data: vehiculo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al asignar conductor',
-      error: error.message
-    });
+    next(error);
   }
+};
+
+module.exports = {
+  getAll: exports.getAll,
+  getById: exports.getById,
+  create: exports.create,
+  update: exports.update,
+  delete: exports.delete,
+  getRutas: exports.getRutas,
+  assignDriver: exports.assignDriver
 };

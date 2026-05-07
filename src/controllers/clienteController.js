@@ -1,9 +1,10 @@
 const { Cliente } = require('../models');
+const AppError = require('../utils/AppError');
 
 // ============================================
 // Listar todos los clientes (habilitados e inhabilitados)
 // ============================================
-const listarClientes = async (req, res) => {
+const listarClientes = async (req, res, next) => {
   try {
     const clientes = await Cliente.findAll({
       order: [['nombre', 'ASC']]
@@ -14,28 +15,20 @@ const listarClientes = async (req, res) => {
       data: clientes
     });
   } catch (error) {
-    console.error('Error al listar clientes:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al listar clientes',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // ============================================
 // Obtener un cliente por ID
 // ============================================
-const obtenerCliente = async (req, res) => {
+const obtenerCliente = async (req, res, next) => {
   try {
     const { id } = req.params;
     const cliente = await Cliente.findByPk(id);
 
     if (!cliente) {
-      return res.status(404).json({
-        success: false,
-        message: 'Cliente no encontrado'
-      });
+      return next(new AppError('Cliente no encontrado', 404));
     }
 
     res.json({
@@ -43,37 +36,26 @@ const obtenerCliente = async (req, res) => {
       data: cliente
     });
   } catch (error) {
-    console.error('Error al obtener cliente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener cliente',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // ============================================
 // Registrar un nuevo cliente
 // ============================================
-const registrarCliente = async (req, res) => {
+const registrarCliente = async (req, res, next) => {
   try {
     const { tipoIdentificacion, numeroIdentificacion, nombre, apellido, telefono, email, direccion } = req.body;
 
     const existingCliente = await Cliente.findOne({ where: { numeroIdentificacion } });
     if (existingCliente) {
-      return res.status(400).json({
-        success: false,
-        message: 'El número de identificación ya está registrado'
-      });
+      return next(new AppError('El número de identificación ya está registrado', 400));
     }
 
     if (email) {
       const existingEmail = await Cliente.findOne({ where: { email } });
       if (existingEmail) {
-        return res.status(400).json({
-          success: false,
-          message: 'El email ya está registrado'
-        });
+        return next(new AppError('El email ya está registrado', 400));
       }
     }
 
@@ -94,29 +76,21 @@ const registrarCliente = async (req, res) => {
       data: nuevoCliente
     });
   } catch (error) {
-    console.error('Error al registrar cliente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al registrar cliente',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // ============================================
 // Actualizar un cliente
 // ============================================
-const actualizarCliente = async (req, res) => {
+const actualizarCliente = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { tipoIdentificacion, numeroIdentificacion, nombre, apellido, telefono, email, direccion } = req.body;
 
     const cliente = await Cliente.findByPk(id);
     if (!cliente) {
-      return res.status(404).json({
-        success: false,
-        message: 'Cliente no encontrado'
-      });
+      return next(new AppError('Cliente no encontrado', 404));
     }
 
     if (numeroIdentificacion && numeroIdentificacion !== cliente.numeroIdentificacion) {
@@ -124,10 +98,7 @@ const actualizarCliente = async (req, res) => {
         where: { numeroIdentificacion, id: { [require('sequelize').Op.ne]: id } }
       });
       if (existingCliente) {
-        return res.status(400).json({
-          success: false,
-          message: 'El número de identificación ya está registrado'
-        });
+        return next(new AppError('El número de identificación ya está registrado', 400));
       }
     }
 
@@ -136,10 +107,7 @@ const actualizarCliente = async (req, res) => {
         where: { email, id: { [require('sequelize').Op.ne]: id } }
       });
       if (existingEmail) {
-        return res.status(400).json({
-          success: false,
-          message: 'El email ya está registrado'
-        });
+        return next(new AppError('El email ya está registrado', 400));
       }
     }
 
@@ -159,28 +127,20 @@ const actualizarCliente = async (req, res) => {
       data: cliente
     });
   } catch (error) {
-    console.error('Error al actualizar cliente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar cliente',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // ============================================
 // Toggle habilitado/inhabilitado
 // ============================================
-const toggleHabilitadoCliente = async (req, res) => {
+const toggleHabilitadoCliente = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const cliente = await Cliente.findByPk(id);
     if (!cliente) {
-      return res.status(404).json({
-        success: false,
-        message: 'Cliente no encontrado'
-      });
+      return next(new AppError('Cliente no encontrado', 404));
     }
 
     await cliente.update({ habilitado: !cliente.habilitado });
@@ -191,12 +151,7 @@ const toggleHabilitadoCliente = async (req, res) => {
       data: cliente
     });
   } catch (error) {
-    console.error('Error al cambiar estado del cliente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al cambiar estado del cliente',
-      error: error.message
-    });
+    next(error);
   }
 };
 

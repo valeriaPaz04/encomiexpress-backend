@@ -1,7 +1,7 @@
 const { PropietarioVehiculo, Vehiculo } = require('../models');
 const AppError = require('../utils/AppError');
 
-exports.getAll = async (req, res) => {
+exports.getAll = async (req, res, next) => {
   try {
     const { habilitado } = req.query;
     
@@ -15,11 +15,7 @@ exports.getAll = async (req, res) => {
       data: propietarios
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener propietarios',
-      error: error.message
-    });
+    next(error);
   }
 };
 
@@ -158,4 +154,13 @@ exports.getVehiculos = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+module.exports = {
+  getAll: exports.getAll,
+  getById: exports.getById,
+  create: exports.create,
+  update: exports.update,
+  delete: exports.delete,
+  getVehiculos: exports.getVehiculos
 };

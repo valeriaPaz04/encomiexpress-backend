@@ -1,6 +1,7 @@
 const { AnticipoExcedente, Conductor, Ruta, Vehiculo, Destino } = require('../models');
+const AppError = require('../utils/AppError');
 
-exports.getAll = async (req, res) => {
+exports.getAll = async (req, res, next) => {
   try {
     const { idConductor, estado } = req.query;
     
@@ -28,15 +29,11 @@ exports.getAll = async (req, res) => {
       data: anticipos
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener anticipos',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getById = async (req, res) => {
+exports.getById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const anticipo = await AnticipoExcedente.findByPk(id, {
@@ -54,10 +51,7 @@ exports.getById = async (req, res) => {
     });
 
     if (!anticipo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Anticipo no encontrado'
-      });
+      return next(new AppError('Anticipo no encontrado', 404));
     }
 
     res.json({
@@ -65,34 +59,24 @@ exports.getById = async (req, res) => {
       data: anticipo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener anticipo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.create = async (req, res) => {
+exports.create = async (req, res, next) => {
   try {
     const { idConductor, idRuta, valorAnticipo, soporte, fechaEntrega } = req.body;
 
     const conductor = await Conductor.findByPk(idConductor);
     if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
+      return next(new AppError('Conductor no encontrado', 404));
     }
 
     let idRutaFinal = idRuta;
     if (idRuta) {
       const ruta = await Ruta.findByPk(idRuta);
       if (!ruta) {
-        return res.status(404).json({
-          success: false,
-          message: 'Ruta no encontrada'
-        });
+        return next(new AppError('Ruta no encontrada', 404));
       }
       idRutaFinal = ruta.idRuta;
     }
@@ -114,16 +98,11 @@ exports.create = async (req, res) => {
       data: anticipo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear anticipo',
-      error: error.message,
-      stack: error.stack
-    });
+    next(error);
   }
 };
 
-exports.update = async (req, res) => {
+exports.update = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { 
@@ -139,10 +118,7 @@ exports.update = async (req, res) => {
     const anticipo = await AnticipoExcedente.findByPk(id);
 
     if (!anticipo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Anticipo no encontrado'
-      });
+      return next(new AppError('Anticipo no encontrado', 404));
     }
 
     let newExcedente = excedente;
@@ -166,15 +142,11 @@ exports.update = async (req, res) => {
       data: anticipo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar anticipo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.liquidar = async (req, res) => {
+exports.liquidar = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { valorGastado, soporte } = req.body;
@@ -182,17 +154,11 @@ exports.liquidar = async (req, res) => {
     const anticipo = await AnticipoExcedente.findByPk(id);
 
     if (!anticipo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Anticipo no encontrado'
-      });
+      return next(new AppError('Anticipo no encontrado', 404));
     }
 
     if (anticipo.estado !== 'pendiente') {
-      return res.status(400).json({
-        success: false,
-        message: 'El anticipo ya fue liquidado'
-      });
+      return next(new AppError('El anticipo ya fue liquidado', 400));
     }
 
     const excedente = anticipo.valorAnticipo - valorGastado;
@@ -211,15 +177,11 @@ exports.liquidar = async (req, res) => {
       data: anticipo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al liquidar anticipo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.entregarExcedente = async (req, res) => {
+exports.entregarExcedente = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { soporte } = req.body;
@@ -227,17 +189,11 @@ exports.entregarExcedente = async (req, res) => {
     const anticipo = await AnticipoExcedente.findByPk(id);
 
     if (!anticipo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Anticipo no encontrado'
-      });
+      return next(new AppError('Anticipo no encontrado', 404));
     }
 
     if (anticipo.excedente <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No hay excedente para entregar'
-      });
+      return next(new AppError('No hay excedente para entregar', 400));
     }
 
     await anticipo.update({
@@ -252,24 +208,17 @@ exports.entregarExcedente = async (req, res) => {
       data: anticipo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al entregar excedente',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.delete = async (req, res) => {
+exports.delete = async (req, res, next) => {
   try {
     const { id } = req.params;
     const anticipo = await AnticipoExcedente.findByPk(id);
 
     if (!anticipo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Anticipo no encontrado'
-      });
+      return next(new AppError('Anticipo no encontrado', 404));
     }
 
     await anticipo.destroy();
@@ -279,21 +228,14 @@ exports.delete = async (req, res) => {
       message: 'Anticipo eliminado exitosamente'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar anticipo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.createMisAnticipo = async (req, res) => {
+exports.createMisAnticipo = async (req, res, next) => {
   try {
     if (req.usuario.rol?.nombre !== 'conductor') {
-      return res.status(403).json({
-        success: false,
-        message: 'Solo los conductores pueden crear anticipos'
-      });
+      return next(new AppError('Solo los conductores pueden crear anticipos', 403));
     }
     
     const conductor = await Conductor.findOne({ 
@@ -301,10 +243,7 @@ exports.createMisAnticipo = async (req, res) => {
     });
     
     if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
+      return next(new AppError('Conductor no encontrado', 404));
     }
     
     const { idRuta, valorAnticipo, soporte, fechaEntrega } = req.body;
@@ -313,10 +252,7 @@ exports.createMisAnticipo = async (req, res) => {
     if (idRuta) {
       const ruta = await Ruta.findByPk(idRuta);
       if (!ruta) {
-        return res.status(404).json({
-          success: false,
-          message: 'Ruta no encontrada'
-        });
+        return next(new AppError('Ruta no encontrada', 404));
       }
       idRutaFinal = ruta.idRuta;
     }
@@ -338,36 +274,26 @@ exports.createMisAnticipo = async (req, res) => {
       data: anticipo
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear anticipo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // ============================================
 // SUBIR SOPORTE A CLOUDINARY
 // ============================================
-exports.updateSoporte = async (req, res) => {
+exports.updateSoporte = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No se subió ningún archivo'
-      });
+      return next(new AppError('No se subió ningún archivo', 400));
     }
 
     const fileUrl = req.file.path; // ← Cloudinary pone la URL aquí
 
     const anticipo = await AnticipoExcedente.findByPk(id);
     if (!anticipo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Anticipo no encontrado'
-      });
+      return next(new AppError('Anticipo no encontrado', 404));
     }
 
     await anticipo.update({ soporte: fileUrl });
@@ -378,10 +304,18 @@ exports.updateSoporte = async (req, res) => {
       data: { soporte: fileUrl }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar soporte',
-      error: error.message
-    });
+    next(error);
   }
+};
+
+module.exports = {
+  getAll: exports.getAll,
+  getById: exports.getById,
+  create: exports.create,
+  update: exports.update,
+  liquidar: exports.liquidar,
+  entregarExcedente: exports.entregarExcedente,
+  delete: exports.delete,
+  createMisAnticipo: exports.createMisAnticipo,
+  updateSoporte: exports.updateSoporte
 };
