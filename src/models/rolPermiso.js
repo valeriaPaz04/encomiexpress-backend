@@ -16,7 +16,7 @@ const RolPermiso = sequelize.define('RolPermiso', {
   }
 
 }, {
-  tableName: 'RolPermiso',
+  tableName: 'rolPermiso',
   timestamps: false
 });
 

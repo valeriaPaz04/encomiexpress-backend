@@ -147,12 +147,18 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
+    const {
       categoriaLicencia,
       numeroLicencia,
       vencimientoLicencia,
       estado,
-      habilitado 
+      habilitado,
+      nombre,
+      apellido,
+      telefono,
+      email,
+      tipoIdentificacion,
+      numeroIdentificacion
     } = req.body;
 
     const conductor = await Conductor.findByPk(id, {
@@ -174,10 +180,25 @@ exports.update = async (req, res) => {
       habilitado: habilitado !== undefined ? habilitado : conductor.habilitado
     });
 
+    if (conductor.usuario) {
+      await conductor.usuario.update({
+        nombre: nombre !== undefined ? nombre : conductor.usuario.nombre,
+        apellido: apellido !== undefined ? apellido : conductor.usuario.apellido,
+        telefono: telefono !== undefined ? telefono : conductor.usuario.telefono,
+        email: email !== undefined ? email : conductor.usuario.email,
+        tipoIdentificacion: tipoIdentificacion !== undefined ? tipoIdentificacion : conductor.usuario.tipoIdentificacion,
+        numeroIdentificacion: numeroIdentificacion !== undefined ? numeroIdentificacion : conductor.usuario.numeroIdentificacion,
+      });
+    }
+
+    const conductorActualizado = await Conductor.findByPk(id, {
+      include: [{ model: Usuario, as: 'usuario', attributes: { exclude: ['password'] } }]
+    });
+
     res.json({
       success: true,
       message: 'Conductor actualizado exitosamente',
-      data: conductor
+      data: conductorActualizado
     });
   } catch (error) {
     res.status(500).json({
