@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -22,7 +22,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',   // React / Vue
+    'http://localhost:5173',   // Vite
+    // 'https://dominio.com' // Dominio
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Si usas cookies o Authorization header
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -42,10 +51,35 @@ app.use('/api/encomiendas', encomiendaRoutes);
 app.use('/api/roles', rolRoutes);
 
 // Ruta de verificación de estado
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'API ENCOMIEXPRESS funcionando correctamente' });
-});
+app.get('/api/health', async (req, res) => {
+  const start = Date.now();
 
+  let dbStatus = 'OK';
+  let dbError = null;
+  try {
+    await sequelize.authenticate(); // Prueba real de conexión a la DB
+  } catch (error) {
+    dbStatus = 'ERROR';
+    dbError = error.message;
+  }
+
+  const responseTime = Date.now() - start;
+
+  res.status(dbStatus === 'OK' ? 200 : 503).json({
+    status: dbStatus === 'OK' ? 'OK' : 'DEGRADED',
+    message: 'API ENCOMIEXPRESS funcionando correctamente',
+    version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    responseTime: `${responseTime}ms`,
+    database: {
+      status: dbStatus,
+      host: process.env.DB_HOST || 'localhost',
+      name: process.env.DB_NAME || 'encomiexpress',
+      ...(dbError && { error: dbError })
+    }
+  });
+});
 // Endpoint para inicializar datos de la base de datos
 app.post('/api/seed', async (req, res, next) => {
   try {

@@ -20,4 +20,11 @@ router.post('/', createValidation, validate, vehiculoController.create);
 router.put('/:id', vehiculoController.update);
 router.delete('/:id', vehiculoController.delete);
 
+// Ruta específica para cambiar estado del vehículo
+router.patch('/:id/estado', [
+  body('estado')
+    .notEmpty().withMessage('El estado es requerido')
+    .isIn(['disponible', 'ocupado', 'en reparacion']).withMessage('Estado inválido. Use: disponible, ocupado, en reparacion')
+], validate, vehiculoController.cambiarEstado);
+
 module.exports = router;

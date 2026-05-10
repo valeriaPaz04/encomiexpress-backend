@@ -1,9 +1,8 @@
 const { Conductor, Usuario, Vehiculo, AnticipoExcedente, Ruta } = require('../models');
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
-const AppError = require('../utils/AppError');
 
-exports.getAll = async (req, res, next) => {
+exports.getAll = async (req, res) => {
   try {
     const { estado, habilitado } = req.query;
     
@@ -21,11 +20,15 @@ exports.getAll = async (req, res, next) => {
       data: conductores
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener conductores',
+      error: error.message
+    });
   }
 };
 
-exports.getById = async (req, res, next) => {
+exports.getById = async (req, res) => {
   try {
     const { id } = req.params;
     const conductor = await Conductor.findByPk(id, {
@@ -33,7 +36,10 @@ exports.getById = async (req, res, next) => {
     });
 
     if (!conductor) {
-      return next(new AppError('Conductor no encontrado', 404));
+      return res.status(404).json({
+        success: false,
+        message: 'Conductor no encontrado'
+      });
     }
 
     res.json({
@@ -41,11 +47,15 @@ exports.getById = async (req, res, next) => {
       data: conductor
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener conductor',
+      error: error.message
+    });
   }
 };
 
-exports.create = async (req, res, next) => {
+exports.create = async (req, res) => {
   try {
     console.log('=== POST /conductores - Datos recibidos ===');
     console.log(req.body);
@@ -123,21 +133,18 @@ exports.create = async (req, res, next) => {
       }
     });
   } catch (error) {
-    // Validar si es un error de llave única de Sequelize
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      // Revisar qué campo causó el error
-      if (error.errors.some(e => e.path === 'numeroLicencia')) {
-        return next(new (require('../utils/AppError'))('El número de licencia ya está registrado para otro conductor.', 400));
-      }
-      if (error.errors.some(e => e.path === 'idUsuario')) {
-        return next(new (require('../utils/AppError'))('Este usuario ya está registrado como conductor.', 400));
-      }
-    }
-    next(error);
+    console.error('=== ERROR en create conductor ===');
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear conductor',
+      error: error.message,
+      stack: error.stack
+    });
   }
 };
 
-exports.update = async (req, res, next) => {
+exports.update = async (req, res) => {
   try {
     const { id } = req.params;
     const { 
@@ -153,7 +160,10 @@ exports.update = async (req, res, next) => {
     });
 
     if (!conductor) {
-      return next(new AppError('Conductor no encontrado', 404));
+      return res.status(404).json({
+        success: false,
+        message: 'Conductor no encontrado'
+      });
     }
 
     await conductor.update({
@@ -170,23 +180,24 @@ exports.update = async (req, res, next) => {
       data: conductor
     });
   } catch (error) {
-    // Validar si es un error de llave única de Sequelize
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      if (error.errors.some(e => e.path === 'numeroLicencia')) {
-        return next(new AppError('El número de licencia ya está registrado para otro conductor.', 400));
-      }
-    }
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar conductor',
+      error: error.message
+    });
   }
 };
 
-exports.delete = async (req, res, next) => {
+exports.delete = async (req, res) => {
   try {
     const { id } = req.params;
     const conductor = await Conductor.findByPk(id);
 
     if (!conductor) {
-      return next(new AppError('Conductor no encontrado', 404));
+      return res.status(404).json({
+        success: false,
+        message: 'Conductor no encontrado'
+      });
     }
 
     await conductor.update({ habilitado: false });
@@ -196,17 +207,24 @@ exports.delete = async (req, res, next) => {
       message: 'Conductor deshabilitado exitosamente'
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar conductor',
+      error: error.message
+    });
   }
 };
 
-exports.getVehiculos = async (req, res, next) => {
+exports.getVehiculos = async (req, res) => {
   try {
     const { id } = req.params;
     
     const conductor = await Conductor.findByPk(id);
     if (!conductor) {
-      return next(new AppError('Conductor no encontrado', 404));
+      return res.status(404).json({
+        success: false,
+        message: 'Conductor no encontrado'
+      });
     }
 
     const vehiculos = await Vehiculo.findAll({
@@ -218,17 +236,24 @@ exports.getVehiculos = async (req, res, next) => {
       data: vehiculos
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener vehículos del conductor',
+      error: error.message
+    });
   }
 };
 
-exports.getAnticipos = async (req, res, next) => {
+exports.getAnticipos = async (req, res) => {
   try {
     const { id } = req.params;
     
     const conductor = await Conductor.findByPk(id);
     if (!conductor) {
-      return next(new AppError('Conductor no encontrado', 404));
+      return res.status(404).json({
+        success: false,
+        message: 'Conductor no encontrado'
+      });
     }
 
     const anticipos = await AnticipoExcedente.findAll({
@@ -241,7 +266,69 @@ exports.getAnticipos = async (req, res, next) => {
       data: anticipos
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener anticipos del conductor',
+      error: error.message
+    });
+  }
+};
+
+// ============================================
+// CAMBIAR ESTADO DEL CONDUCTOR
+// ============================================
+
+const ESTADOS_VALIDOS = ['activo', 'inactivo'];
+
+exports.cambiarEstado = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { estado } = req.body;
+
+    if (!estado) {
+      return res.status(400).json({
+        success: false,
+        message: 'El campo "estado" es requerido'
+      });
+    }
+
+    if (!ESTADOS_VALIDOS.includes(estado)) {
+      return res.status(400).json({
+        success: false,
+        message: `Estado inválido. Los estados permitidos son: ${ESTADOS_VALIDOS.join(', ')}`
+      });
+    }
+
+    const conductor = await Conductor.findByPk(id, {
+      include: [{ model: Usuario, as: 'usuario' }]
+    });
+
+    if (!conductor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Conductor no encontrado'
+      });
+    }
+
+    const estadoAnterior = conductor.estado;
+    await conductor.update({ estado });
+
+    res.json({
+      success: true,
+      message: 'Estado del conductor actualizado correctamente',
+      data: {
+        idConductor: conductor.idConductor,
+        nombre: `${conductor.usuario.nombre} ${conductor.usuario.apellido}`,
+        estadoAnterior,
+        estadoActual: estado
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al cambiar el estado del conductor',
+      error: error.message
+    });
   }
 };
 
@@ -250,11 +337,14 @@ exports.getAnticipos = async (req, res, next) => {
 // ============================================
 
 // Obtener mis anticipos como conductor logueado
-exports.getMisAnticipos = async (req, res, next) => {
+exports.getMisAnticipos = async (req, res) => {
   try {
     // Verificar que sea conductor
     if (req.usuario.rol?.nombre !== 'conductor') {
-      return next(new AppError('Solo los conductores pueden acceder a esta información', 403));
+      return res.status(403).json({
+        success: false,
+        message: 'Solo los conductores pueden acceder a esta información'
+      });
     }
     
     // Buscar el conductor por el idUsuario del token
@@ -263,9 +353,12 @@ exports.getMisAnticipos = async (req, res, next) => {
     });
     
     if (!conductor) {
-      return next(new AppError('Conductor no encontrado', 404));
+      return res.status(404).json({
+        success: false,
+        message: 'Conductor no encontrado'
+      });
     }
-
+    
     // Obtener anticipos del conductor
     const anticipos = await AnticipoExcedente.findAll({
       where: { idConductor: conductor.idConductor },
@@ -277,17 +370,10 @@ exports.getMisAnticipos = async (req, res, next) => {
       data: anticipos
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener anticipos',
+      error: error.message
+    });
   }
-};
-
-module.exports = {
-  getAll: exports.getAll,
-  getById: exports.getById,
-  create: exports.create,
-  update: exports.update,
-  delete: exports.delete,
-  getVehiculos: exports.getVehiculos,
-  getAnticipos: exports.getAnticipos,
-  getMisAnticipos: exports.getMisAnticipos
 };
