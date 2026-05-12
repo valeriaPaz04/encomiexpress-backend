@@ -1,237 +1,188 @@
-# ENCOMIEXPRESS API
+# EncomiExpress - Backend
 
-API REST para el sistema de gestión de encomiendas ENCOMIEXPRESS.
+API REST para la gestión operativa de EncomiExpress en OsvaldoC Mensajería y Logística S.A.S., empresa especializada en el transporte de encomiendas. Diseñada como la capa central de servicios del sistema, permite la comunicación y administración de información entre el panel web administrativo, la aplicación móvil y la base de datos.
 
-## 🚀 Características
+---
 
-- Autenticación JWT con roles y permisos
-- Gestión completa de usuarios, clientes, conductores y vehículos
-- Sistema de rutas y destinos
-- Gestión de encomiendas con seguimiento en tiempo real
-- Control de anticipos y excedentes para conductores
-- API RESTful con validaciones
+## Características Implementadas
 
-## 🛠️ Tecnologías
+| Rol | Funcionalidades |
+|------|----------------|
+| **Administrador** | - Gestión de usuarios, roles y permisos <br> - Gestión de clientes y conductores <br> - Gestión de vehículos y propietarios <br> - Gestión de destinos y rutas <br> - Control de encomiendas y ventas <br> - Control de anticipos y excedentes |
+| **Conductor** *(vía app móvil)* | - Consulta de anticipos asignados <br> - Cargue de soportes y legalización |
+| **General** | - Autenticación JWT <br> - Manejo de errores centralizado <br> - Validación de datos por middleware |
 
-- **Node.js** - Entorno de ejecución
-- **Express.js** - Framework web
-- **PostgreSQL** - Base de datos
-- **Sequelize** - ORM
-- **JWT** - Autenticación
-- **Bcryptjs** - Encriptación de contraseñas
+---
 
-## 📋 Requisitos
+## Stack Tecnológico
 
-- Node.js >= 14
-- PostgreSQL >= 12
+- Node.js — Entorno de ejecución
+- Express.js — Framework web
+- PostgreSQL — Base de datos
+- Sequelize — ORM
+- JWT — Autenticación
+- Bcryptjs — Encriptación de contraseñas
+- Cloudinary — Almacenamiento de imágenes y soportes
+- Nodemailer — Envío de correos electrónicos
+- Multer — Manejo de archivos
 
-## ⚡ Instalación
+---
 
-1. Clonar el repositorio
-2. Instalar dependencias:
+## Arquitectura Limpia
+
+El proyecto está estructurado siguiendo principios de arquitectura limpia y separación de responsabilidades:
+
 ```bash
-npm install
+src/
+│
+├── config/           # Configuración de base de datos, Cloudinary y correo
+├── controllers/      # Lógica de peticiones y respuestas por recurso
+├── middleware/       # Autenticación, autorización y manejo de errores
+├── models/           # Modelos Sequelize y relaciones entre entidades
+├── routes/           # Rutas de la API organizadas por recurso
+└── utils/            # AppError — clase centralizada de errores
 ```
 
-3. Configurar variables de entorno en `.env`:
-```env
+### Principios de Arquitectura Implementados
+
+- **Separación de responsabilidades**: Cada capa tiene un propósito bien definido (rutas, controladores, modelos).
+- **Middleware reutilizable**: Autenticación, autorización por rol y autorización por permiso como middlewares independientes
+- **Manejo de errores centralizado**: Clase `AppError` con respuestas diferenciadas por entorno (`development` / `production`)
+- **RBAC**: Control de acceso basado en roles y permisos granulares por módulo
+
+---
+
+## Entidades
+
+| Entidad | Descripción |
+|---|---|
+| `Usuario` | Usuarios del sistema con rol asignado |
+| `Rol` | Roles del sistema (admin, conductor) |
+| `Permiso` | Permisos granulares por módulo |
+| `RolPermiso` | Relación N:N entre roles y permisos |
+| `Conductor` | Perfil de conductor vinculado a un usuario |
+| `PropietarioVehiculo` | Propietarios de vehículos propios o tercerizados |
+| `Vehiculo` | Flota de vehículos asignados a conductores |
+| `Cliente` | Clientes remitentes de encomiendas |
+| `Destinatario` | Destinatarios de los envíos |
+| `Destino` | Ciudades y tarifas base habilitadas |
+| `Ruta` | Rutas programadas con vehículo y conductor asignado |
+| `EncomiendaVenta` | Registro de ventas y encomiendas con guía generada |
+| `Paquete` | Paquetes asociados a cada encomienda |
+| `AnticipoExcedente` | Anticipos entregados a conductores y su legalización |
+
+---
+
+## Seguridad
+
+| Mecanismo | Detalle |
+|---|---|
+| **JWT** | Token con expiración de 24h — el servidor rechaza tokens inválidos o expirados con error 401 |
+| **Bcrypt** | Contraseñas hasheadas con salt de 10 rondas |
+| **RBAC** | Middleware `authorize(...roles)` y `authorizePermission(permiso)` por ruta |
+| **CORS** | Habilitado vía `cors()` en Express |
+| **Validación** | Middleware de validación aplicado por recurso antes de llegar al controlador |
+| **Errores operacionales** | `AppError.isOperational` diferencia errores esperados de fallos internos — en producción no se expone el stack |
+
+---
+
+## Decisiones de Diseño
+
+| Decisión | Justificación |
+|---|---|
+| **Sequelize vs TypeORM** | Sequelize tiene mayor compatibilidad con JavaScript puro y ecosistema más maduro para el stack del equipo |
+| **AppError centralizado** | Permite respuestas consistentes en todos los endpoints y diferencia entre errores operacionales y de sistema |
+| **Seed vía endpoint `/api/seed`** | Facilita la inicialización del admin en entornos de despliegue sin acceso directo a la base de datos |
+| **Autorización por rol y por permiso** | Permite control de acceso flexible: por rol para rutas generales, por permiso para acciones granulares |
+
+---
+
+## Variables de Entorno
+
+Creá un archivo `.env` en la raíz del proyecto:
+
+```dotenv
 PORT=3000
 NODE_ENV=development
+
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=encomiexpress
 DB_USER=postgres
 DB_PASSWORD=postgres
+
 JWT_SECRET=tu_secret_key
+JWT_EXPIRES_IN=24h
+
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+EMAIL_USER=
+EMAIL_PASS=
 ```
 
-4. Crear la base de datos:
+---
+
+## Instalación
+
 ```bash
-# Conectarse a PostgreSQL
-psql -U postgres
+# 1. Clonar el repositorio
+git clone https://github.com/EncomiExpress/encomiexpress-backend.git
+cd encomiexpress-backend
 
-# Crear base de datos
-CREATE DATABASE encomiexpress;
+# 2. Instalar dependencias
+npm install
 
-# Ejecutar script de inicialización
-\i database/init.sql
+# 3. Configurar variables de entorno
+cp .env.example .env
+
+# 4. Iniciar el servidor
+npm run dev    # Desarrollo
+npm start      # Producción
 ```
 
-5. Iniciar el servidor:
-```bash
-# Desarrollo
-npm run dev
+---
 
-# Producción
-npm start
-```
+## Credenciales de Prueba
 
-## 📡 Endpoints de la API
+El usuario administrador se inicializa automáticamente llamando al endpoint:
+POST http://localhost:3000/api/seed
 
-### Autenticación
-- `POST /api/auth/login` - Iniciar sesión
-- `POST /api/auth/register` - Registrar usuario
-- `GET /api/auth/profile` - Obtener perfil (requiere token)
+| Rol | Email | Contraseña |
+|------|-------|------------|
+| Administrador | `admin@encomiexpress.com` | `admin123` |
+| Conductor | `conductor@encomiexpress.com` | `conductor123` |
 
-### Usuarios
-- `GET /api/usuarios` - Listar usuarios (admin)
-- `GET /api/usuarios/:id` - Obtener usuario
-- `POST /api/usuarios` - Crear usuario (admin)
-- `PUT /api/usuarios/:id` - Actualizar usuario (admin)
-- `DELETE /api/usuarios/:id` - Eliminar usuario (admin)
+---
 
-### Roles y Permisos
-- `GET /api/roles` - Listar roles
-- `GET /api/roles/:id` - Obtener rol por ID
-- `POST /api/roles` - Crear rol
-- `PUT /api/roles/:id` - Actualizar rol
-- `DELETE /api/roles/:id` - Eliminar (inhabilitar) rol
-- `GET /api/roles/permisos` - Listar todos los permisos
+## Rutas de la API
 
-### Clientes
-- `GET /api/clientes` - Listar clientes
-- `GET /api/clientes/:id` - Obtener cliente
-- `POST /api/clientes` - Crear cliente
-- `PUT /api/clientes/:id` - Actualizar cliente
-- `GET /api/clientes/:id/encomiendas` - Ver encomiendas del cliente
+- Base URL: `http://localhost:3000/api`
+- Autenticación: `POST /auth/login`
+- Usuarios: `GET/POST/PUT/DELETE /usuarios`
+- Roles: `GET/POST/PUT/DELETE /roles`
+- Permisos: `GET /permisos`
+- Clientes: `GET/POST/PUT /clientes`
+- Conductores: `GET/POST /conductores`, `GET /conductores/:id/vehiculos`
+- Propietarios: `GET/POST/PUT /propietarios`
+- Vehículos: `GET/POST/PUT /vehiculos`
+- Destinos: `GET/POST/PUT /destinos`
+- Rutas: `GET/POST /rutas`, `GET /rutas/disponibles`, `GET /rutas/:id/encomiendas`
+- Encomiendas: `GET/POST /encomiendas`, `GET /encomiendas/track/:numeroGuia`, `PUT /encomiendas/:id/estado`, `POST /encomiendas/:id/pagar`
+- Anticipos: `GET/POST /anticipos`, `POST /anticipos/liquidar/:id`
+- Health check: `GET /health`
+- Seed: `POST /seed`
 
-### Conductores
-- `GET /api/conductores` - Listar conductores
-- `GET /api/conductores/:id` - Obtener conductor
-- `POST /api/conductores` - Crear conductor
-- `GET /api/conductores/:id/vehiculos` - Ver vehículos del conductor
+---
 
-### Vehículos
-- `GET /api/vehiculos` - Listar vehículos
-- `GET /api/vehiculos/:id` - Obtener vehículo
-- `POST /api/vehiculos` - Crear vehículo
-- `PUT /api/vehiculos/:id` - Actualizar vehículo
+## Repositorios relacionados
 
-### Destinos
-- `GET /api/destinos` - Listar destinos
-- `GET /api/destinos/:id` - Obtener destino
-- `POST /api/destinos` - Crear destino
-- `PUT /api/destinos/:id` - Actualizar destino
+| Repositorio | Descripción | Stack |
+|-------------|-------------|-------|
+| [encomiexpress-mobile](https://github.com/EncomiExpress/encomiexpress-mobile) | Aplicación móvil para conductores y administradores | Flutter · Dart |
+| [encomiexpress-frontend](https://github.com/EncomiExpress/encomiexpress-frontend) | Panel web administrativo | React · Vite · Material UI |
 
-### Rutas
-- `GET /api/rutas` - Listar rutas
-- `GET /api/rutas/disponibles` - Rutas disponibles
-- `GET /api/rutas/:id` - Obtener ruta
-- `POST /api/rutas` - Crear ruta
-- `GET /api/rutas/:id/encomiendas` - Ver encomiendas de la ruta
+---
 
-### Anticipos
-- `GET /api/anticipos` - Listar anticipos
-- `POST /api/anticipos` - Crear anticipo
-- `POST /api/anticipos/liquidar/:id` - Liquidar anticipo
-
-### Encomiendas
-- `GET /api/encomiendas` - Listar encomiendas
-- `GET /api/encomiendas/track/:numeroGuia` - Rastrear encomienda (público)
-- `GET /api/encomiendas/:id` - Obtener encomienda
-- `POST /api/encomiendas` - Crear encomienda
-- `PUT /api/encomiendas/:id/estado` - Actualizar estado
-- `POST /api/encomiendas/:id/pagar` - Registrar pago
-
-## 🔐 Roles de Usuario
-
-| Rol | Descripción |
-|-----|-------------|
-| admin | Acceso completo al sistema |
-| usuario | Puede gestionar clientes y encomiendas |
-| conductor | Puede gestionar rutas, vehículos y encomiendas |
-
-## 📝 Ejemplo de Uso
-
-> **Nota:** El puerto por defecto es `3000`, pero se configura mediante la variable de entorno `PORT`
-
-### Iniciar sesión
-```bash
-curl -X POST http://localhost:${PORT:-3000}/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@encomiexpress.com", "password": "admin123"}'
-```
-
-### Crear encomienda
-```bash
-curl -X POST http://localhost:${PORT:-3000}/api/encomiendas \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer TU_TOKEN" \
-  -d '{
-    "idCliente": 1,
-    "idRuta": 1,
-    "valorServicio": 25000,
-    "destinatario": {
-      "nombreDestinatario": "Juan Pérez",
-      "telefonoDestinatario": "3001234567",
-      "direccionDestinatario": "Calle 123 #45-67"
-    },
-    "paquetes": [
-      {
-        "descripcionContenido": "Ropa",
-        "peso": 2.5
-      }
-    ]
-  }'
-```
-
-### Rastrear encomienda
-```bash
-curl http://localhost:${PORT:-3000}/api/encomiendas/track/ENCOMIEXPRESS-123
-```
-
-## 🗄️ Cambios en la Base de Datos
-
-**1. Permitir idRuta nulo en anticipoExcedente (para anticipos sin ruta asignada):**
-```sql
-ALTER TABLE "anticipoExcedente" ALTER COLUMN "idRuta" DROP NOT NULL;
-```
-
-**2. Permitir idRuta nulo en encomiendaVenta (para encomiendas sin ruta):**
-```sql
-ALTER TABLE "encomiendaVenta" ALTER COLUMN "idRuta" DROP NOT NULL;
-```
-
-**3. Agregar columna fechaMaxima en anticipoExcedente:**
-```sql
-ALTER TABLE "anticipoExcedente" ADD COLUMN "fechaMaxima" DATE;
-```
-
-## 👤 Crear Usuario Conductor
-
-```sql
--- 1. Insertar usuario
-INSERT INTO usuario ("idRol", "tipoIdentificacion", "numeroIdentificacion", nombre, apellido, telefono, email, password, habilitado)
-VALUES (
-    (SELECT "idRol" FROM rol WHERE nombre = 'conductor'),
-    'CC', 
-    '87654321', 
-    'Conductor', 
-    'Demo', 
-    '3001234567', 
-    'conductor@encomiexpress.com',
-    '$2a$10$XveXAx1WR0eRp27VE0OXE.r3l8Sa3Kud1gMuOTrm8QvDIxN8KSxaa', 
-    true
-);
-
--- 2. Insertar conductor
-INSERT INTO conductor ("idUsuario", "categoriaLicencia", "numeroLicencia", "vencimientoLicencia", "estado", "habilitado")
-VALUES (
-    (SELECT "idUsuario" FROM usuario WHERE email = 'conductor@encomiexpress.com'),
-    'B1',
-    '87654321',
-    '2027-12-31',
-    'activo',
-    true
-);
-```
-
-**Contraseña encriptada:** La contraseña `conductor123` ya está hasheada en el insert above.
-Para generar nueva contraseña:
-```bash
-node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('tuPassword', 10).then(h => console.log(h))"
-```
-
-## 📄 Licencia
-
-ISC
+Desarrollado con apoyo de herramientas de inteligencia artificial Claude (Anthropic) y Kilo Code.
