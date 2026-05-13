@@ -1,5 +1,5 @@
 const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const CloudinaryStorage = require('multer-storage-cloudinary'); // ← sin llaves, es la función directa
 const multer = require('multer');
 
 cloudinary.config({
@@ -10,10 +10,8 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: {
-    folder: 'encomiexpress',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'],
-  },
+  folder: 'encomiexpress',        // ← en v2.x va directo, no dentro de params
+  allowedFormats: ['jpg', 'jpeg', 'png', 'pdf'],
 });
 
 const upload = multer({ storage });

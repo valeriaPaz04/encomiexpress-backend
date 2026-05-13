@@ -28,6 +28,10 @@ const authenticate = async (req, res, next) => {
       return next(new AppError('Usuario deshabilitado', 401));
     }
 
+    // 👇 LOG TEMPORAL — quitar después de diagnosticar
+    console.log('✅ Usuario autenticado:', usuario.email);
+    console.log('✅ Rol cargado:', JSON.stringify(usuario.rol?.dataValues));
+
     req.usuario = usuario;
     next();
   } catch (error) {
@@ -50,6 +54,11 @@ const authorize = (...roles) => {
       });
     }
 
+    // 👇 LOG TEMPORAL — quitar después de diagnosticar
+    console.log('🔐 Rol del usuario:', req.usuario.rol?.nombre);
+    console.log('🔐 Roles permitidos:', roles);
+    console.log('🔐 Tiene acceso:', roles.includes(req.usuario.rol?.nombre));
+
     if (!roles.includes(req.usuario.rol?.nombre)) {
       return res.status(403).json({
         success: false,
@@ -71,6 +80,10 @@ const authorizePermission = (permiso) => {
     }
 
     const permisos = req.usuario.rol?.permisos?.map(p => p.nombre);
+
+    // 👇 LOG TEMPORAL — quitar después de diagnosticar
+    console.log('🛡️ Permiso requerido:', permiso);
+    console.log('🛡️ Permisos del usuario:', permisos);
 
     if (!permisos?.includes(permiso)) {
       return res.status(403).json({
