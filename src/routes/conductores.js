@@ -3,6 +3,8 @@ const router = express.Router();
 const conductorController = require('../controllers/conductorController');
 const anticipoController = require('../controllers/anticipoExcedenteController');
 const { authenticate, authorize } = require('../middlewares/auth');
+const { validate } = require('../middlewares/validation');
+const { createValidation, updateValidation, cambiarEstadoValidation } = require('../validators/conductoresValidator');
 
 // ============================================
 // RUTAS PROTEGIDAS - PRIMERO PARA EVITAR CONFLICTO CON :id
@@ -157,11 +159,11 @@ router.get('/:id/anticipos', conductorController.getAnticipos);
 // ============================================
 // RUTAS PROTEGIDAS - ADMIN
 // ============================================
-router.post('/', authorize('admin'), conductorController.create);
-router.put('/:id', authorize('admin'), conductorController.update);
+router.post('/', authorize('admin'), createValidation, validate, conductorController.create);
+router.put('/:id', authorize('admin'), updateValidation, validate, conductorController.update);
 router.delete('/:id', authorize('admin'), conductorController.delete);
 
 // Ruta específica para cambiar estado del conductor
-router.patch('/:id/estado', authorize('admin'), conductorController.cambiarEstado);
+router.patch('/:id/estado', authorize('admin'), cambiarEstadoValidation, validate, conductorController.cambiarEstado);
 
 module.exports = router;

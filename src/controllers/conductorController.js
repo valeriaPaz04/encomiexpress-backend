@@ -1,400 +1,104 @@
-const { Conductor, Usuario, Vehiculo, AnticipoExcedente, Ruta } = require('../models');
-const bcrypt = require('bcryptjs');
+const { AppError } = require('../errors/appError');
+const conductorService = require('../services/conductorService');
 const { Op } = require('sequelize');
 
-exports.getAll = async (req, res) => {
+exports.getAll = async (req, res, next) => {
   try {
-    const { estado, habilitado } = req.query;
-    
-    const where = {};
-    if (estado) where.estado = estado;
-    if (habilitado !== undefined) where.habilitado = habilitado === 'true';
-
-    const conductores = await Conductor.findAll({
-      where,
-      include: [{ model: Usuario, as: 'usuario' }]
-    });
-
-    res.json({
-      success: true,
-      data: conductores
-    });
+    const filters = { estado: req.query.estado, habilitado: req.query.habilitado };
+    const conductores = await conductorService.getAll(filters);
+    res.json({ success: true, data: conductores });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener conductores',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getById = async (req, res) => {
+exports.getById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const conductor = await Conductor.findByPk(id, {
-      include: [{ model: Usuario, as: 'usuario' }]
-    });
-
-    if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: conductor
-    });
+    const conductor = await conductorService.getById(id);
+    res.json({ success: true, data: conductor });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.create = async (req, res) => {
+exports.create = async (req, res, next) => {
   try {
-    console.log('=== POST /conductores - Datos recibidos ===');
-    console.log(req.body);
-    
-    const { 
-      tipoIdentificacion, 
-      numeroIdentificacion, 
-      nombre, 
-      apellido, 
-      telefono, 
-      email, 
-      password,
-      categoriaLicencia,
-      numeroLicencia,
-      vencimientoLicencia
-    } = req.body;
-
-    // Generar identificador único
-    const uniqueId = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
-    const finalNumId = numeroIdentificacion || uniqueId;
-    const finalEmail = email || `conductor${uniqueId}@test.com`;
-    
-    console.log('=== Creando usuario con: ===');
-    console.log({
-      tipoIdentificacion: tipoIdentificacion || 'CC',
-      numeroIdentificacion: finalNumId,
-      nombre: nombre || 'Conductor',
-      apellido: apellido || 'Nuevo',
-      telefono: telefono || uniqueId,
-      email: finalEmail
-    });
-    
-    // Crear usuario primero
-    const hashedPassword = await bcrypt.hash(password || '123456', 10);
-    
-    const usuarioData = {
-      tipoIdentificacion: tipoIdentificacion || 'CC',
-      numeroIdentificacion: finalNumId,
-      nombre: nombre || 'Conductor',
-      apellido: apellido || 'Nuevo',
-      telefono: telefono || uniqueId,
-      email: finalEmail,
-      password: hashedPassword,
-      idRol: 3, // Rol de conductor por defecto
-      habilitado: true
-    };
-    
-    // Agregar rol si se proporciona
-    if (req.body.idRol) {
-      usuarioData.idRol = req.body.idRol;
-    }
-    
-    const usuario = await Usuario.create(usuarioData);
-    console.log('Usuario creado con ID:', usuario.idUsuario);
-
-    // Crear conductor
-    const conductor = await Conductor.create({
-      idUsuario: usuario.idUsuario,
-      categoriaLicencia: categoriaLicencia || 'B1',
-      numeroLicencia: numeroLicencia || uniqueId,
-      vencimientoLicencia: vencimientoLicencia,
-      estado: 'activo'
-    });
-    
-    console.log('Conductor creado con ID:', conductor.idConductor);
-
+    const conductor = await conductorService.create(req.body);
     res.status(201).json({
       success: true,
       message: 'Conductor creado exitosamente',
       data: {
         idConductor: conductor.idConductor,
         idUsuario: conductor.idUsuario,
-        nombre: `${nombre || 'Conductor'} ${apellido || 'Nuevo'}`,
-        email: finalEmail
+        nombre: conductor.nombre,
+        email: conductor.email
       }
     });
   } catch (error) {
-    console.error('=== ERROR en create conductor ===');
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear conductor',
-      error: error.message,
-      stack: error.stack
-    });
+    next(error);
   }
 };
 
-exports.update = async (req, res) => {
+exports.update = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const {
-      categoriaLicencia,
-      numeroLicencia,
-      vencimientoLicencia,
-      estado,
-      habilitado,
-      nombre,
-      apellido,
-      telefono,
-      email,
-      tipoIdentificacion,
-      numeroIdentificacion
-    } = req.body;
-
-    const conductor = await Conductor.findByPk(id, {
-      include: [{ model: Usuario, as: 'usuario' }]
-    });
-
-    if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
-    }
-
-    await conductor.update({
-      categoriaLicencia: categoriaLicencia !== undefined ? categoriaLicencia : conductor.categoriaLicencia,
-      numeroLicencia: numeroLicencia !== undefined ? numeroLicencia : conductor.numeroLicencia,
-      vencimientoLicencia: vencimientoLicencia !== undefined ? vencimientoLicencia : conductor.vencimientoLicencia,
-      estado: estado || conductor.estado,
-      habilitado: habilitado !== undefined ? habilitado : conductor.habilitado
-    });
-
-    if (conductor.usuario) {
-      await conductor.usuario.update({
-        nombre: nombre !== undefined ? nombre : conductor.usuario.nombre,
-        apellido: apellido !== undefined ? apellido : conductor.usuario.apellido,
-        telefono: telefono !== undefined ? telefono : conductor.usuario.telefono,
-        email: email !== undefined ? email : conductor.usuario.email,
-        tipoIdentificacion: tipoIdentificacion !== undefined ? tipoIdentificacion : conductor.usuario.tipoIdentificacion,
-        numeroIdentificacion: numeroIdentificacion !== undefined ? numeroIdentificacion : conductor.usuario.numeroIdentificacion,
-      });
-    }
-
-    const conductorActualizado = await Conductor.findByPk(id, {
-      include: [{ model: Usuario, as: 'usuario', attributes: { exclude: ['password'] } }]
-    });
-
-    res.json({
-      success: true,
-      message: 'Conductor actualizado exitosamente',
-      data: conductorActualizado
-    });
+    const conductor = await conductorService.update(id, req.body);
+    res.json({ success: true, message: 'Conductor actualizado exitosamente', data: conductor });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.delete = async (req, res) => {
+exports.delete = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const conductor = await Conductor.findByPk(id);
-
-    if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
-    }
-
-    await conductor.update({ habilitado: false });
-
-    res.json({
-      success: true,
-      message: 'Conductor deshabilitado exitosamente'
-    });
+    await conductorService.delete(id);
+    res.json({ success: true, message: 'Conductor deshabilitado exitosamente' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getVehiculos = async (req, res) => {
+exports.getVehiculos = async (req, res, next) => {
   try {
     const { id } = req.params;
-    
-    const conductor = await Conductor.findByPk(id);
-    if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
-    }
-
-    const vehiculos = await Vehiculo.findAll({
-      where: { idConductor: id }
-    });
-
-    res.json({
-      success: true,
-      data: vehiculos
-    });
+    const vehiculos = await conductorService.getVehiculos(id);
+    res.json({ success: true, data: vehiculos });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener vehículos del conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-exports.getAnticipos = async (req, res) => {
+exports.getAnticipos = async (req, res, next) => {
   try {
     const { id } = req.params;
-    
-    const conductor = await Conductor.findByPk(id);
-    if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
-    }
-
-    const anticipos = await AnticipoExcedente.findAll({
-      where: { idConductor: id },
-      include: [{ model: Ruta, as: 'ruta' }]
-    });
-
-    res.json({
-      success: true,
-      data: anticipos
-    });
+    const anticipos = await conductorService.getAnticipos(id);
+    res.json({ success: true, data: anticipos });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener anticipos del conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-// ============================================
-// CAMBIAR ESTADO DEL CONDUCTOR
-// ============================================
-
-const ESTADOS_VALIDOS = ['activo', 'inactivo'];
-
-exports.cambiarEstado = async (req, res) => {
+exports.cambiarEstado = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { estado } = req.body;
-
-    if (!estado) {
-      return res.status(400).json({
-        success: false,
-        message: 'El campo "estado" es requerido'
-      });
-    }
-
-    if (!ESTADOS_VALIDOS.includes(estado)) {
-      return res.status(400).json({
-        success: false,
-        message: `Estado inválido. Los estados permitidos son: ${ESTADOS_VALIDOS.join(', ')}`
-      });
-    }
-
-    const conductor = await Conductor.findByPk(id, {
-      include: [{ model: Usuario, as: 'usuario' }]
-    });
-
-    if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
-    }
-
-    const estadoAnterior = conductor.estado;
-    await conductor.update({ estado });
-
+    const result = await conductorService.cambiarEstado(id, req.body.estado);
     res.json({
       success: true,
       message: 'Estado del conductor actualizado correctamente',
-      data: {
-        idConductor: conductor.idConductor,
-        nombre: `${conductor.usuario.nombre} ${conductor.usuario.apellido}`,
-        estadoAnterior,
-        estadoActual: estado
-      }
+      data: result
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al cambiar el estado del conductor',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-// ============================================
-// MÉTODOS PARA CONDUCTOR LOGUEADO
-// ============================================
-
-// Obtener mis anticipos como conductor logueado
-exports.getMisAnticipos = async (req, res) => {
+exports.getMisAnticipos = async (req, res, next) => {
   try {
-    // Verificar que sea conductor
-    if (req.usuario.rol?.nombre !== 'conductor') {
-      return res.status(403).json({
-        success: false,
-        message: 'Solo los conductores pueden acceder a esta información'
-      });
-    }
-    
-    // Buscar el conductor por el idUsuario del token
-    const conductor = await Conductor.findOne({ 
-      where: { idUsuario: req.usuario.idUsuario }
-    });
-    
-    if (!conductor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conductor no encontrado'
-      });
-    }
-    
-    // Obtener anticipos del conductor
-    const anticipos = await AnticipoExcedente.findAll({
-      where: { idConductor: conductor.idConductor },
-      include: [{ model: Ruta, as: 'ruta' }]
-    });
-
-    res.json({
-      success: true,
-      data: anticipos
-    });
+    const anticipos = await conductorService.getMisAnticipos(req.usuario.idUsuario, req.usuario.rol?.nombre);
+    res.json({ success: true, data: anticipos });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener anticipos',
-      error: error.message
-    });
+    next(error);
   }
 };

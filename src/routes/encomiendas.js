@@ -1,9 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { body } = require('express-validator');
 const { validate } = require('../middlewares/validation');
 const encomiendaVentaController = require('../controllers/encomiendaVentaController');
 const { authenticate, authorize } = require('../middlewares/auth');
+const {
+  createValidation,
+  cambiarEstadoValidation,
+  agregarPaqueteValidation,
+  agregarDestinatarioValidation
+} = require('../validators/encomiendasValidator');
 
 // ============================================
 // Rutas públicas
@@ -25,21 +30,13 @@ router.get('/guia/:numeroGuia', encomiendaVentaController.getByGuia);
 router.use(authenticate);
 
 // POST /api/encomiendas - Crear una nueva encomienda
-router.post('/',
-  body('idCliente').notEmpty().withMessage('Cliente es requerido'),
-  validate,
-  encomiendaVentaController.create
-);
+router.post('/', authenticate, createValidation, validate, encomiendaVentaController.create);
 
 // PUT /api/encomiendas/:id - Actualizar una encomienda
 router.put('/:id', encomiendaVentaController.update);
 
 // PATCH /api/encomiendas/:id/estado - Cambiar estado
-router.patch('/:id/estado', 
-  body('estado').notEmpty().withMessage('Estado es requerido'),
-  validate,
-  encomiendaVentaController.cambiarEstado
-);
+router.patch('/:id/estado', authenticate, cambiarEstadoValidation, validate, encomiendaVentaController.cambiarEstado);
 
 // PATCH /api/encomiendas/:id/toggle-habilitado - Habilitar/Inhabilitar
 router.patch('/:id/toggle-habilitado', encomiendaVentaController.toggleHabilitado);
@@ -48,17 +45,9 @@ router.patch('/:id/toggle-habilitado', encomiendaVentaController.toggleHabilitad
 router.delete('/:id', authorize('admin'), encomiendaVentaController.delete);
 
 // POST /api/encomiendas/:idEncomiendaVenta/paquetes - Agregar paquete
-router.post('/:idEncomiendaVenta/paquetes', 
-  body('descripcionContenido').notEmpty().withMessage('Descripción del contenido es requerida'),
-  validate,
-  encomiendaVentaController.agregarPaquete
-);
+router.post('/:idEncomiendaVenta/paquetes', authenticate, agregarPaqueteValidation, validate, encomiendaVentaController.agregarPaquete);
 
 // POST /api/encomiendas/:idEncomiendaVenta/destinatario - Agregar destinatario
-router.post('/:idEncomiendaVenta/destinatario',
-  body('nombreDestinatario').notEmpty().withMessage('Nombre del destinatario es requerido'),
-  validate,
-  encomiendaVentaController.agregarDestinatario
-);
+router.post('/:idEncomiendaVenta/destinatario', authenticate, agregarDestinatarioValidation, validate, encomiendaVentaController.agregarDestinatario);
 
 module.exports = router;

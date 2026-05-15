@@ -1,0 +1,210 @@
+const { Vehiculo, Conductor, PropietarioVehiculo, Ruta, Usuario, Destino } = require('../models');
+const AppError = require('../errors/appError');
+
+const getAll = async ({ estado, habilitado }) => {
+  const where = {};
+  if (estado) where.estado = estado;
+  if (habilitado !== undefined) where.habilitado = habilitado === 'true';
+
+  const vehiculos = await Vehiculo.findAll({
+    where,
+    include: [
+      { model: Conductor, as: 'conductor', include: [{ model: Usuario, as: 'usuario' }] },
+      { model: PropietarioVehiculo, as: 'propietario' }
+    ]
+  });
+
+  return vehiculos;
+};
+
+const getById = async (id) => {
+  const vehiculo = await Vehiculo.findByPk(id, {
+    include: [
+      { model: Conductor, as: 'conductor', include: [{ model: Usuario, as: 'usuario' }] },
+      { model: PropietarioVehiculo, as: 'propietario' }
+    ]
+  });
+
+  if (!vehiculo) {
+    throw new AppError('Vehículo no encontrado', 404);
+  }
+
+  return vehiculo;
+};
+
+const create = async (data) => {
+  const {
+    idConductor,
+    idPropietario,
+    placa,
+    marca,
+    modelo,
+    color,
+    tipo,
+    capacidad,
+    vencimientoSOAT,
+    vencimientoRevisionTecnica,
+    vencimientoSeguroTerceros
+  } = data;
+
+  const existing = await Vehiculo.findOne({ where: { placa } });
+  if (existing) {
+    throw new AppError('La placa ya está registrada', 400);
+  }
+
+  const vehiculo = await Vehiculo.create({
+    idConductor,
+    idPropietario,
+    placa,
+    marca,
+    modelo,
+    color,
+    tipo,
+    capacidad,
+    estado: 'disponible',
+    fechaRegistro: new Date(),
+    vencimientoSOAT,
+    vencimientoRevisionTecnica,
+    vencimientoSeguroTerceros
+  });
+
+  return vehiculo;
+};
+
+const update = async (id, data) => {
+  const {
+    idConductor,
+    idPropietario,
+    placa,
+    marca,
+    modelo,
+    color,
+    tipo,
+    capacidad,
+    estado,
+    vencimientoSOAT,
+    vencimientoRevisionTecnica,
+    vencimientoSeguroTerceros,
+    habilitado
+  } = data;
+
+  const vehiculo = await Vehiculo.findByPk(id);
+
+  if (!vehiculo) {
+    throw new AppError('Vehículo no encontrado', 404);
+  }
+
+  if (placa && placa !== vehiculo.placa) {
+    const existing = await Vehiculo.findOne({ where: { placa } });
+    if (existing) {
+      throw new AppError('La placa ya está registrada', 400);
+    }
+  }
+
+  await vehiculo.update({
+    idConductor: idConductor || vehiculo.idConductor,
+    idPropietario: idPropietario || vehiculo.idPropietario,
+    placa: placa || vehiculo.placa,
+    marca: marca !== undefined ? marca : vehiculo.marca,
+    modelo: modelo !== undefined ? modelo : vehiculo.modelo,
+    color: color !== undefined ? color : vehiculo.color,
+    tipo: tipo !== undefined ? tipo : vehiculo.tipo,
+    capacidad: capacidad !== undefined ? capacidad : vehiculo.capacidad,
+    estado: estado || vehiculo.estado,
+    vencimientoSOAT: vencimientoSOAT !== undefined ? vencimientoSOAT : vehiculo.vencimientoSOAT,
+    vencimientoRevisionTecnica: vencimientoRevisionTecnica !== undefined ? vencimientoRevisionTecnica : vehiculo.vencimientoRevisionTecnica,
+    vencimientoSeguroTerceros: vencimientoSeguroTerceros !== undefined ? vencimientoSeguroTerceros : vehiculo.vencimientoSeguroTerceros,
+    habilitado: habilitado !== undefined ? habilitado : vehiculo.habilitado
+  });
+
+  return vehiculo;
+};
+
+const deleteVehiculo = async (id) => {
+  const vehiculo = await Vehiculo.findByPk(id);
+
+  if (!vehiculo) {
+    throw new AppError('Vehículo no encontrado', 404);
+  }
+
+  await vehiculo.update({ habilitado: false });
+
+  return { message: 'Vehículo deshabilitado exitosamente' };
+};
+
+const getRutas = async (id) => {
+  const vehiculo = await Vehiculo.findByPk(id);
+  if (!vehiculo) {
+    throw new AppError('Vehículo no encontrado', 404);
+  }
+
+  const rutas = await Ruta.findAll({
+    where: { idVehiculo: id },
+    include: [
+      { model: Conductor, as: 'conductor' },
+      { model: Destino, as: 'destino' }
+    ]
+  });
+
+  return rutas;
+};
+
+const cambiarEstado = async (id, estado) => {
+  const ESTADOS_VALIDOS = ['disponible', 'ocupado', 'en reparacion'];
+
+  if (!estado) {
+    throw new AppError('El campo "estado" es requerido', 400);
+  }
+
+  if (!ESTADOS_VALIDOS.includes(estado)) {
+    throw new AppError(`Estado inválido. Los estados permitidos son: ${ESTADOS_VALIDOS.join(', ')}`, 400);
+  }
+
+  const vehiculo = await Vehiculo.findByPk(id);
+
+  if (!vehiculo) {
+    throw new AppError('Vehículo no encontrado', 404);
+  }
+
+  if (!vehiculo.habilitado) {
+    throw new AppError('No se puede cambiar el estado de un vehículo deshabilitado', 400);
+  }
+
+  const estadoAnterior = vehiculo.estado;
+  await vehiculo.update({ estado });
+
+  return {
+    idVehiculo: vehiculo.idVehiculo,
+    placa: vehiculo.placa,
+    estadoAnterior,
+    estadoActual: estado
+  };
+};
+
+const assignDriver = async (id, idConductor) => {
+  const vehiculo = await Vehiculo.findByPk(id);
+
+  if (!vehiculo) {
+    throw new AppError('Vehículo no encontrado', 404);
+  }
+
+  const conductor = await Conductor.findByPk(idConductor);
+  if (!conductor) {
+    throw new AppError('Conductor no encontrado', 404);
+  }
+
+  await vehiculo.update({ idConductor });
+
+  return vehiculo;
+};
+
+module.exports = {
+  getAll,
+  getById,
+  create,
+  update,
+  delete: deleteVehiculo,
+  getRutas,
+  cambiarEstado,
+  assignDriver
+};

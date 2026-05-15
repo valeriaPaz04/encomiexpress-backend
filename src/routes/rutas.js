@@ -1,16 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { body } = require('express-validator');
 const { validate } = require('../middlewares/validation');
 const rutaController = require('../controllers/rutaController');
 const { authenticate, authorizePermission } = require('../middlewares/auth');
-
-// Validaciones
-const createValidation = [
-  body('idVehiculo').notEmpty().withMessage('Vehículo es requerido'),
-  body('idConductor').notEmpty().withMessage('Conductor es requerido'),
-  body('idDestino').notEmpty().withMessage('Destino es requerido')
-];
+const { createValidation } = require('../validators/rutasValidator');
 
 router.use(authenticate);
 

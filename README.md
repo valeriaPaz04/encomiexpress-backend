@@ -32,23 +32,29 @@ API REST para la gestión operativa de EncomiExpress en OsvaldoC Mensajería y L
 
 El proyecto está estructurado siguiendo principios de arquitectura limpia y separación de responsabilidades:
 
-```bash
+```
 src/
 │
-├── config/           # Configuración de base de datos, Cloudinary y correo
-├── controllers/      # Lógica de peticiones y respuestas por recurso
-├── middleware/       # Autenticación, autorización y manejo de errores
-├── models/           # Modelos Sequelize y relaciones entre entidades
-├── routes/           # Rutas de la API organizadas por recurso
-└── utils/            # AppError — clase centralizada de errores
+├── config/                    # Configuraciones globales (BD, Cloudinary, email)
+├── controllers/               # Capa delgada: recibe req, llama al servicio, envía res
+├── services/                  # Lógica de negocio (reglas, validaciones, consultas)
+├── models/                    # Modelos Sequelize y relaciones entre entidades
+├── routes/                    # Definición de endpoints organizados por recurso
+├── middlewares/               # Autenticación, autorización y manejo de errores
+├── validators/                # Reglas de validación de datos por entidad
+├── errors/                    # Clases de error personalizadas (AppError)
+├── utils/                     # Funciones helpers puras (sin dependencias)
+├── app.js                     # Configuración de Express (middlewares, rutas)
+└── server.js                  # Punto de entrada (conecta DB, inicia servidor)
 ```
 
-### Principios de Arquitectura Implementados
+### Principios
 
-- **Separación de responsabilidades**: Cada capa tiene un propósito bien definido (rutas, controladores, modelos).
-- **Middleware reutilizable**: Autenticación, autorización por rol y autorización por permiso como middlewares independientes
-- **Manejo de errores centralizado**: Clase `AppError` con respuestas diferenciadas por entorno (`development` / `production`)
-- **RBAC**: Control de acceso basado en roles y permisos granulares por módulo
+- **Separación de responsabilidades**: Cada capa tiene un propósito bien definido (rutas, controladores, servicios, modelos).
+- **Middlewares reutilizables**: Autenticación, autorización por rol y por permiso como middlewares independientes.
+- **Manejo de errores centralizado**: `appError` con respuestas diferenciadas por entorno (`development` / `production`).
+- **RBAC**: Control de acceso basado en roles y permisos granulares por módulo.
+- **Validaciones desacopladas**: Reglas de validación por entidad en `validators/`, ejecutadas por middleware antes de llegar al controlador.
 
 ---
 
@@ -82,7 +88,7 @@ src/
 | **RBAC** | Middleware `authorize(...roles)` y `authorizePermission(permiso)` por ruta |
 | **CORS** | Habilitado vía `cors()` en Express |
 | **Validación** | Middleware de validación aplicado por recurso antes de llegar al controlador |
-| **Errores operacionales** | `AppError.isOperational` diferencia errores esperados de fallos internos — en producción no se expone el stack |
+| **Errores operacionales** | `appError.isOperational` diferencia errores esperados de fallos internos — en producción no se expone el stack |
 
 ---
 
@@ -134,10 +140,7 @@ cd encomiexpress-backend
 # 2. Instalar dependencias
 npm install
 
-# 3. Configurar variables de entorno
-cp .env.example .env
-
-# 4. Iniciar el servidor
+# 3. Iniciar el servidor
 npm run dev    # Desarrollo
 npm start      # Producción
 ```

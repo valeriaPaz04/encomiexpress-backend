@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { body } = require('express-validator');
 const { validate } = require('../middlewares/validation');
 const anticipoController = require('../controllers/anticipoExcedenteController');
 const { authenticate, authorize, authorizePermission } = require('../middlewares/auth');
 const { upload } = require('../config/cloudinary');
+const { createValidation } = require('../validators/anticiposValidator');
 
 // ============================================
 // RUTAS PÚBLICAS (solo lectura para admin/conductor)
@@ -17,11 +17,7 @@ router.get('/:id', authenticate, authorizePermission('consultar_anticipo'), anti
 // ============================================
 
 // Crear anticipo - admin o conductor
-router.post('/', authenticate, authorize('admin', 'conductor'),
-  body('valorAnticipo').notEmpty().withMessage('Valor del anticipo es requerido'),
-  validate, 
-  anticipoController.create
-);
+router.post('/', authenticate, authorize('admin', 'conductor'), createValidation, validate, anticipoController.create);
 
 // Actualizar anticipo - admin o conductor (solo el conductor owner o admin)
 router.put('/:id', authenticate, authorize('admin', 'conductor'), anticipoController.update);

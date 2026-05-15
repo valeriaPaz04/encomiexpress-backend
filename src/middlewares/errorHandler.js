@@ -1,4 +1,4 @@
-const AppError = require('../utils/AppError');
+const AppError = require('../errors/appError');
 
 const handleJWTError = () => new AppError('Token inválido. Por favor, inicia sesión de nuevo.', 401);
 const handleJWTExpiredError = () => new AppError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.', 401);

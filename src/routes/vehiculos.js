@@ -1,17 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { body } = require('express-validator');
 const { validate } = require('../middlewares/validation');
 const vehiculoController = require('../controllers/vehiculoController');
-
-// Validaciones
-const createValidation = [
-  body('idConductor').notEmpty().withMessage('Conductor es requerido'),
-  body('idPropietario').notEmpty().withMessage('Propietario es requerido'),
-  body('placa').notEmpty().withMessage('Placa es requerida'),
-  body('marca').notEmpty().withMessage('Marca es requerida'),
-  body('modelo').notEmpty().withMessage('Modelo es requerido')
-];
+const { createValidation, cambiarEstadoValidation } = require('../validators/vehiculosValidator');
 
 // Rutas PÚBLICAS
 router.get('/', vehiculoController.getAll);
@@ -21,10 +12,6 @@ router.put('/:id', vehiculoController.update);
 router.delete('/:id', vehiculoController.delete);
 
 // Ruta específica para cambiar estado del vehículo
-router.patch('/:id/estado', [
-  body('estado')
-    .notEmpty().withMessage('El estado es requerido')
-    .isIn(['disponible', 'ocupado', 'en reparacion']).withMessage('Estado inválido. Use: disponible, ocupado, en reparacion')
-], validate, vehiculoController.cambiarEstado);
+router.patch('/:id/estado', cambiarEstadoValidation, validate, vehiculoController.cambiarEstado);
 
 module.exports = router;

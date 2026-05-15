@@ -1,17 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { body } = require('express-validator');
 const { validate } = require('../middlewares/validation');
 const propietarioController = require('../controllers/propietarioVehiculoController');
 const { authenticate, authorizePermission } = require('../middlewares/auth');
-
-// Validaciones
-const createValidation = [
-  body('tipoIdentificacion').notEmpty().withMessage('Tipo de identificación es requerido'),
-  body('numeroIdentificacion').notEmpty().withMessage('Número de identificación es requerido'),
-  body('nombre').notEmpty().withMessage('Nombre es requerido'),
-  body('apellido').notEmpty().withMessage('Apellido es requerido')
-];
+const { createValidation } = require('../validators/propietariosValidator');
 
 router.use(authenticate);
 
