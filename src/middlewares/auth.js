@@ -5,15 +5,16 @@ const AppError = require('../errors/appError');
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next(new AppError('No se proporcionó token de autenticación', 401));
     }
 
     const token = authHeader.split(' ')[1];
-    
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+    const { Op } = require('sequelize');
+
     const usuario = await Usuario.findByPk(decoded.idUsuario, {
       include: [
         { model: Rol, as: 'rol', include: [{ model: Permiso, as: 'permisos' }] }
@@ -27,10 +28,6 @@ const authenticate = async (req, res, next) => {
     if (!usuario.habilitado) {
       return next(new AppError('Usuario deshabilitado', 401));
     }
-
-    // 👇 LOG TEMPORAL — quitar después de diagnosticar
-    console.log('✅ Usuario autenticado:', usuario.email);
-    console.log('✅ Rol cargado:', JSON.stringify(usuario.rol?.dataValues));
 
     req.usuario = usuario;
     next();

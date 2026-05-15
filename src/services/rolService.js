@@ -11,7 +11,10 @@ const getAll = async () => {
       through: { attributes: [] }
     }]
   });
-  return roles;
+  return roles.map(rol => ({
+    ...rol.toJSON(),
+    permisos: rol.permisos.map(p => p.nombre)
+  }));
 };
 
 const getById = async (id) => {
@@ -29,7 +32,10 @@ const getById = async (id) => {
     throw new AppError('Rol no encontrado', 404);
   }
 
-  return rol;
+  return {
+    ...rol.toJSON(),
+    permisos: rol.permisos.map(p => p.nombre)
+  };
 };
 
 const create = async (data) => {
@@ -64,7 +70,10 @@ const create = async (data) => {
     ]
   });
 
-  return rolCreado;
+  return {
+    ...rolCreado.toJSON(),
+    permisos: rolCreado.permisos.map(p => p.nombre)
+  };
 };
 
 const update = async (id, data) => {
@@ -108,7 +117,10 @@ const update = async (id, data) => {
     ]
   });
 
-  return rolActualizado;
+  return {
+    ...rolActualizado.toJSON(),
+    permisos: rolActualizado.permisos.map(p => p.nombre)
+  };
 };
 
 const deleteRol = async (id) => {

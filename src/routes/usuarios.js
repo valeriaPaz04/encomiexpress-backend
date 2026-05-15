@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { validate } = require('../middlewares/validation');
 const usuarioController = require('../controllers/usuarioController');
-const { authenticate, authorize, authorizePermission } = require('../middlewares/auth');
+const { authenticate, authorizePermission } = require('../middlewares/auth');
 const { createValidation, updateValidation, changePasswordValidation } = require('../validators/usuariosValidator');
+
+router.use(authenticate);
 
 // Rutas de usuarios
 router.get('/', authorizePermission('listar_usuario'), usuarioController.getAll);
